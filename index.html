@@ -1,0 +1,2401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Global Music Exchange — Find the Sound. Book the Moment.</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+--gold: #C9A84C;
+--gold-light: #E8C96A;
+--gold-dim: rgba(201,168,76,0.15);
+--bg: #0A0A0B;
+--bg2: #111114;
+--bg3: #18181D;
+--text: #F0EDE8;
+--text-dim: rgba(240,237,232,0.55);
+--text-faint: rgba(240,237,232,0.2);
+--border: rgba(201,168,76,0.2);
+--red: #C94C4C;
+--green: #4CC97A;
+--blue: #4C8EC9;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+background: var(--bg);
+color: var(--text);
+font-family: 'DM Sans', sans-serif;
+font-weight: 300;
+line-height: 1.6;
+overflow-x: hidden;
+}
+
+/* ── NOISE TEXTURE ── */
+body::before {
+content: '';
+position: fixed;
+inset: 0;
+background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+pointer-events: none;
+z-index: 9999;
+opacity: 0.5;
+}
+
+/* ── CONSTELLATION CANVAS (3D globe perspective) ── */
+#particle-canvas {
+position: fixed;
+inset: 0;
+width: 100vw;
+height: 100vh;
+z-index: -1;
+pointer-events: none;
+transform: perspective(2200px) rotateX(16deg) rotateY(-4deg);
+transform-origin: center 55%;
+}
+
+/* Tickers and network counter removed in v4 */
+
+/* ── PRELOADER ── */
+.preloader {
+position: fixed;
+inset: 0;
+background: var(--bg);
+z-index: 10000;
+display: flex;
+align-items: center;
+justify-content: center;
+flex-direction: column;
+gap: 1.8rem;
+transition: opacity 0.6s ease, visibility 0s linear 0.6s;
+}
+.preloader.hidden {
+opacity: 0;
+visibility: hidden;
+pointer-events: none;
+}
+.preloader-brand {
+font-family: 'Playfair Display', serif;
+font-size: clamp(1.8rem, 4vw, 2.8rem);
+font-weight: 700;
+letter-spacing: -0.01em;
+}
+.preloader-brand span { color: var(--gold); }
+.preloader-count {
+font-family: 'DM Mono', monospace;
+font-size: 0.75rem;
+letter-spacing: 0.3em;
+color: var(--text-dim);
+}
+.preloader-count em { font-style: normal; color: var(--gold); }
+.preloader-bar {
+width: 260px;
+height: 1px;
+background: rgba(201,168,76,0.15);
+position: relative;
+}
+.preloader-bar-fill {
+position: absolute;
+top: 0; left: 0;
+height: 100%;
+background: linear-gradient(90deg, rgba(201,168,76,0.4), var(--gold));
+width: 0%;
+box-shadow: 0 0 8px rgba(201,168,76,0.6);
+}
+.preloader-star {
+position: absolute;
+top: 50%;
+left: 0%;
+transform: translate(-50%, -50%);
+width: 20px;
+height: 20px;
+display: flex;
+align-items: center;
+justify-content: center;
+color: var(--gold-light);
+font-size: 14px;
+filter: drop-shadow(0 0 6px var(--gold)) drop-shadow(0 0 14px rgba(201,168,76,0.5));
+animation: starPulse 1.4s ease-in-out infinite;
+transition: left 0.05s linear;
+}
+.preloader-star::before {
+content: '';
+position: absolute;
+inset: -10px;
+border-radius: 50%;
+background: radial-gradient(circle, rgba(232,201,106,0.35), transparent 70%);
+pointer-events: none;
+animation: starHalo 2s ease-in-out infinite;
+}
+@keyframes starPulse {
+0%, 100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+50% { transform: translate(-50%, -50%) scale(1.15) rotate(180deg); opacity: 0.85; }
+}
+@keyframes starHalo {
+0%, 100% { opacity: 0.6; transform: scale(1); }
+50% { opacity: 1; transform: scale(1.3); }
+}
+
+/* ── NAV ── */
+nav {
+position: fixed;
+top: 0; left: 0; right: 0;
+z-index: 100;
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 1.4rem 3rem;
+background: rgba(10,10,11,0.88);
+backdrop-filter: blur(24px);
+-webkit-backdrop-filter: blur(24px);
+border-bottom: 1px solid var(--border);
+transition: padding 0.3s, background 0.3s;
+}
+nav.scrolled {
+padding: 0.9rem 3rem;
+background: rgba(10,10,11,0.95);
+}
+
+.nav-logo {
+font-family: 'Playfair Display', serif;
+font-size: 1.3rem;
+font-weight: 700;
+letter-spacing: 0.02em;
+color: var(--text);
+}
+.nav-logo span { color: var(--gold); }
+
+.nav-links { display: flex; gap: 2.5rem; list-style: none; }
+.nav-links a {
+color: var(--text-dim);
+text-decoration: none;
+font-size: 0.82rem;
+font-weight: 400;
+letter-spacing: 0.08em;
+text-transform: uppercase;
+transition: color 0.3s;
+position: relative;
+}
+.nav-links a::after {
+content: '';
+position: absolute;
+bottom: -4px; left: 0; right: 0;
+height: 1px;
+background: var(--gold);
+transform: scaleX(0);
+transition: transform 0.3s;
+}
+.nav-links a:hover { color: var(--gold); }
+.nav-links a:hover::after { transform: scaleX(1); }
+
+.nav-cta {
+background: var(--gold);
+color: #000;
+border: none;
+padding: 0.55rem 1.4rem;
+font-family: 'DM Sans', sans-serif;
+font-size: 0.82rem;
+font-weight: 500;
+letter-spacing: 0.06em;
+text-transform: uppercase;
+cursor: pointer;
+transition: background 0.2s, transform 0.15s, box-shadow 0.3s;
+}
+.nav-cta:hover {
+background: var(--gold-light);
+transform: translateY(-1px);
+box-shadow: 0 4px 20px rgba(201,168,76,0.3);
+}
+
+/* ── HERO ── */
+.hero {
+min-height: 100vh;
+display: flex;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+text-align: center;
+padding: 8rem 2rem 4rem;
+position: relative;
+overflow: hidden;
+}
+
+/* Hero content held back until map intro finishes */
+.hero-content-item {
+opacity: 0;
+transform: translateY(16px);
+transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hero.ready .hero-content-item {
+opacity: 1;
+transform: translateY(0);
+}
+.hero.ready .hero-content-item.d1 { transition-delay: 0.05s; }
+.hero.ready .hero-content-item.d2 { transition-delay: 0.18s; }
+.hero.ready .hero-content-item.d3 { transition-delay: 0.32s; }
+.hero.ready .hero-content-item.d4 { transition-delay: 0.46s; }
+.hero.ready .hero-content-item.d5 { transition-delay: 0.60s; }
+
+.hero-grid-bg {
+position: absolute;
+inset: 0;
+background-image:
+  linear-gradient(rgba(201,168,76,0.04) 1px, transparent 1px),
+  linear-gradient(90deg, rgba(201,168,76,0.04) 1px, transparent 1px);
+background-size: 60px 60px;
+mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black, transparent);
+-webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black, transparent);
+}
+
+.hero-glow {
+position: absolute;
+width: 700px; height: 700px;
+background: radial-gradient(circle, rgba(201,168,76,0.1) 0%, transparent 70%);
+top: 50%; left: 50%;
+transform: translate(-50%, -55%);
+pointer-events: none;
+animation: pulseGlow 6s ease-in-out infinite;
+}
+@keyframes pulseGlow {
+0%, 100% { opacity: 0.7; transform: translate(-50%, -55%) scale(1); }
+50% { opacity: 1; transform: translate(-50%, -55%) scale(1.08); }
+}
+
+.hero-eyebrow {
+font-family: 'DM Mono', monospace;
+font-size: 0.72rem;
+letter-spacing: 0.2em;
+text-transform: uppercase;
+color: var(--gold);
+margin-bottom: 1.5rem;
+}
+
+.hero h1 {
+font-family: 'Playfair Display', serif;
+font-size: clamp(3rem, 7vw, 6.5rem);
+font-weight: 900;
+line-height: 1.05;
+letter-spacing: -0.02em;
+max-width: 900px;
+}
+.hero h1 em {
+font-style: italic;
+color: var(--gold);
+}
+
+.hero-sub {
+margin-top: 1.8rem;
+font-size: 1.1rem;
+color: var(--text-dim);
+max-width: 540px;
+line-height: 1.7;
+}
+
+.hero-btns {
+display: flex;
+gap: 1rem;
+margin-top: 2.8rem;
+}
+
+.btn-primary {
+background: var(--gold);
+color: #000;
+border: none;
+padding: 0.9rem 2.4rem;
+font-family: 'DM Sans', sans-serif;
+font-weight: 600;
+font-size: 0.9rem;
+letter-spacing: 0.05em;
+cursor: pointer;
+transition: all 0.25s;
+position: relative;
+overflow: hidden;
+}
+.btn-primary::before {
+content: '';
+position: absolute;
+inset: 0;
+background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.2) 50%, transparent 70%);
+transform: translateX(-100%);
+transition: transform 0.6s;
+}
+.btn-primary:hover::before { transform: translateX(100%); }
+.btn-primary:hover {
+background: var(--gold-light);
+transform: translateY(-2px);
+box-shadow: 0 8px 35px rgba(201,168,76,0.35);
+}
+
+.btn-ghost {
+background: transparent;
+color: var(--text);
+border: 1px solid var(--border);
+padding: 0.9rem 2.4rem;
+font-family: 'DM Sans', sans-serif;
+font-weight: 400;
+font-size: 0.9rem;
+letter-spacing: 0.05em;
+cursor: pointer;
+transition: all 0.25s;
+}
+.btn-ghost:hover {
+border-color: var(--gold);
+color: var(--gold);
+transform: translateY(-2px);
+box-shadow: 0 4px 20px rgba(201,168,76,0.1);
+}
+
+.hero-stats {
+display: flex;
+gap: 3.5rem;
+margin-top: 5rem;
+}
+
+.stat-item { text-align: center; }
+.stat-num {
+font-family: 'Playfair Display', serif;
+font-size: 2.2rem;
+font-weight: 700;
+color: var(--gold);
+display: block;
+}
+.stat-label {
+font-size: 0.72rem;
+color: var(--text-dim);
+letter-spacing: 0.1em;
+text-transform: uppercase;
+margin-top: 0.2rem;
+}
+
+/* ── SECTIONS ── */
+section { padding: 7rem 3rem; max-width: 1280px; margin: 0 auto; }
+.section-full { max-width: 100%; padding: 7rem 0; }
+.section-inner { max-width: 1280px; margin: 0 auto; padding: 0 3rem; }
+
+.section-label {
+font-family: 'DM Mono', monospace;
+font-size: 0.68rem;
+letter-spacing: 0.25em;
+text-transform: uppercase;
+color: var(--gold);
+margin-bottom: 1rem;
+}
+
+.section-title {
+font-family: 'Playfair Display', serif;
+font-size: clamp(2rem, 4vw, 3.2rem);
+font-weight: 700;
+line-height: 1.15;
+margin-bottom: 1.2rem;
+}
+.section-title em { font-style: italic; color: var(--gold); }
+
+.section-desc {
+color: var(--text-dim);
+font-size: 1.02rem;
+max-width: 520px;
+line-height: 1.7;
+}
+
+/* ── DIVIDER ── */
+.divider {
+width: 100%;
+height: 1px;
+background: linear-gradient(90deg, transparent, var(--border), transparent);
+}
+
+/* ── PHASES ── */
+.phases-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 1.5px;
+background: var(--border);
+border: 1px solid var(--border);
+margin-top: 4rem;
+}
+
+.phase-card {
+background: var(--bg2);
+padding: 3rem;
+position: relative;
+overflow: hidden;
+transition: background 0.3s;
+}
+.phase-card:hover { background: var(--bg3); }
+.phase-card::before {
+content: '';
+position: absolute;
+top: 0; left: 0; right: 0;
+height: 2px;
+background: linear-gradient(90deg, transparent, var(--gold), transparent);
+opacity: 0;
+transition: opacity 0.3s;
+}
+.phase-card:hover::before { opacity: 1; }
+
+.phase-num {
+font-family: 'Playfair Display', serif;
+font-size: 5rem;
+font-weight: 900;
+color: var(--text-faint);
+line-height: 1;
+margin-bottom: 1.5rem;
+}
+
+.phase-tag {
+display: inline-flex;
+align-items: center;
+gap: 0.6rem;
+font-family: 'DM Mono', monospace;
+font-size: 0.68rem;
+letter-spacing: 0.22em;
+text-transform: uppercase;
+padding: 0;
+margin-bottom: 1.2rem;
+color: var(--text-dim);
+background: transparent;
+border: none;
+position: relative;
+}
+.phase-tag::before {
+content: '';
+width: 6px;
+height: 6px;
+border-radius: 50%;
+background: var(--gold);
+box-shadow: 0 0 8px rgba(201,168,76,0.6);
+flex-shrink: 0;
+}
+.phase-tag.free::before {
+animation: tagPulse 2s ease-in-out infinite;
+}
+.phase-tag.paid::before {
+opacity: 0.35;
+box-shadow: none;
+}
+.phase-tag.free { color: var(--gold); }
+.phase-tag.paid { color: var(--text-faint); }
+@keyframes tagPulse {
+0%, 100% { box-shadow: 0 0 8px rgba(201,168,76,0.6); transform: scale(1); }
+50% { box-shadow: 0 0 14px rgba(201,168,76,0.9); transform: scale(1.25); }
+}
+
+.phase-card h3 {
+font-family: 'Playfair Display', serif;
+font-size: 1.5rem;
+font-weight: 700;
+margin-bottom: 0.8rem;
+}
+.phase-card p { color: var(--text-dim); font-size: 0.9rem; line-height: 1.7; }
+
+/* ── ROLES ── */
+.roles-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 2rem;
+margin-top: 4rem;
+}
+
+.role-card {
+border: 1px solid var(--border);
+background: var(--bg2);
+padding: 2.5rem;
+position: relative;
+overflow: hidden;
+transition: border-color 0.3s, transform 0.3s;
+}
+.role-card:hover {
+border-color: rgba(201,168,76,0.4);
+transform: translateY(-3px);
+}
+
+.role-card::after {
+content: '';
+position: absolute;
+bottom: -60px; right: -60px;
+width: 180px; height: 180px;
+border-radius: 50%;
+background: radial-gradient(circle, var(--gold-dim), transparent 70%);
+transition: opacity 0.3s;
+}
+.role-card:hover::after { opacity: 1.5; }
+
+.role-icon {
+width: 64px; height: 64px;
+border-radius: 50%;
+background: radial-gradient(circle at 35% 30%, rgba(201,168,76,0.22), rgba(201,168,76,0.06));
+border: 1px solid var(--border);
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 1.7rem;
+margin-bottom: 1.5rem;
+position: relative;
+transition: all 0.4s ease;
+}
+.role-icon::after {
+content: '';
+position: absolute;
+inset: -6px;
+border-radius: 50%;
+border: 1px dashed rgba(201,168,76,0.25);
+animation: slowSpin 24s linear infinite;
+}
+.role-card:hover .role-icon {
+border-color: var(--gold);
+box-shadow: 0 0 24px rgba(201,168,76,0.25);
+transform: scale(1.05);
+}
+@keyframes slowSpin {
+from { transform: rotate(0); }
+to { transform: rotate(360deg); }
+}
+
+.role-card h3 {
+font-family: 'Playfair Display', serif;
+font-size: 1.4rem;
+margin-bottom: 1rem;
+}
+
+.role-features { list-style: none; display: flex; flex-direction: column; gap: 0.7rem; }
+.role-features li {
+display: flex;
+align-items: flex-start;
+gap: 0.7rem;
+font-size: 0.88rem;
+color: var(--text-dim);
+line-height: 1.5;
+}
+.role-features li::before {
+content: '\25C6';
+color: var(--gold);
+font-size: 0.45rem;
+margin-top: 0.4rem;
+flex-shrink: 0;
+}
+
+/* ── MARKETPLACE MECHANICS ── */
+.mechanics-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 1px;
+background: var(--border);
+margin-top: 4rem;
+}
+
+.mechanic-card {
+background: var(--bg2);
+padding: 3rem;
+transition: background 0.3s;
+}
+.mechanic-card:hover { background: var(--bg3); }
+
+.mechanic-badge {
+font-family: 'DM Mono', monospace;
+font-size: 0.65rem;
+letter-spacing: 0.15em;
+text-transform: uppercase;
+color: var(--blue);
+border: 1px solid rgba(76,142,201,0.3);
+background: rgba(76,142,201,0.08);
+display: inline-block;
+padding: 0.25rem 0.7rem;
+margin-bottom: 1.2rem;
+}
+
+.mechanic-card h3 {
+font-family: 'Playfair Display', serif;
+font-size: 1.6rem;
+margin-bottom: 0.5rem;
+}
+.mechanic-card .mechanic-model {
+font-family: 'DM Mono', monospace;
+font-size: 0.72rem;
+color: var(--text-faint);
+margin-bottom: 1.2rem;
+}
+.mechanic-card p { color: var(--text-dim); font-size: 0.9rem; line-height: 1.7; margin-bottom: 1.5rem; }
+
+.flow-mini {
+display: flex;
+align-items: center;
+gap: 0.5rem;
+flex-wrap: wrap;
+}
+.flow-mini-step {
+font-size: 0.72rem;
+padding: 0.35rem 0.8rem;
+background: var(--bg3);
+border: 1px solid var(--border);
+color: var(--text-dim);
+white-space: nowrap;
+transition: all 0.2s;
+}
+.flow-mini-step:hover {
+border-color: var(--gold);
+color: var(--gold);
+}
+.flow-mini-arrow { color: var(--gold); font-size: 0.8rem; }
+
+/* ── ESCROW FLOW ── */
+.escrow-section {
+background: var(--bg2);
+border-top: 1px solid var(--border);
+border-bottom: 1px solid var(--border);
+}
+
+.escrow-steps {
+display: grid;
+grid-template-columns: repeat(6, 1fr);
+gap: 0;
+margin-top: 4rem;
+position: relative;
+}
+
+.escrow-steps::before {
+content: '';
+position: absolute;
+top: 2rem;
+left: calc(100% / 12);
+right: calc(100% / 12);
+height: 1px;
+background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold));
+opacity: 0.4;
+}
+
+.escrow-step {
+padding: 0 1.2rem;
+text-align: center;
+position: relative;
+}
+
+.step-circle {
+width: 4rem; height: 4rem;
+border-radius: 50%;
+background: var(--bg);
+border: 2px solid var(--border);
+display: flex;
+align-items: center;
+justify-content: center;
+margin: 0 auto 1.5rem;
+font-family: 'DM Mono', monospace;
+font-size: 0.75rem;
+color: var(--gold);
+transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+position: relative;
+z-index: 1;
+cursor: default;
+}
+.escrow-step:hover .step-circle {
+background: var(--gold);
+color: #000;
+border-color: var(--gold);
+box-shadow: 0 0 25px rgba(201,168,76,0.5);
+transform: scale(1.15);
+}
+
+.step-icon { font-size: 1.1rem; }
+.escrow-step h4 {
+font-family: 'Playfair Display', serif;
+font-size: 0.88rem;
+margin-bottom: 0.4rem;
+}
+.escrow-step p { font-size: 0.75rem; color: var(--text-dim); line-height: 1.5; }
+
+/* ── SITEMAP ── */
+.sitemap-grid {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 1.5rem;
+margin-top: 3rem;
+}
+
+.sitemap-col h4 {
+font-family: 'DM Mono', monospace;
+font-size: 0.65rem;
+letter-spacing: 0.2em;
+text-transform: uppercase;
+color: var(--gold);
+padding-bottom: 0.8rem;
+border-bottom: 1px solid var(--border);
+margin-bottom: 1rem;
+}
+
+.sitemap-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+.sitemap-col ul li {
+font-size: 0.82rem;
+color: var(--text-dim);
+padding: 0.5rem 0.8rem;
+border: 1px solid transparent;
+transition: all 0.25s;
+cursor: default;
+}
+.sitemap-col ul li:hover {
+border-color: var(--border);
+color: var(--text);
+background: var(--bg2);
+transform: translateX(4px);
+}
+.sitemap-col ul li::before {
+content: '/ ';
+color: var(--text-faint);
+font-family: 'DM Mono', monospace;
+}
+
+/* ── DATABASE SCHEMA ── */
+.schema-grid {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 1.5rem;
+margin-top: 3rem;
+}
+
+.table-card {
+border: 1px solid var(--border);
+background: var(--bg2);
+overflow: hidden;
+transition: border-color 0.3s, transform 0.3s;
+}
+.table-card:hover {
+border-color: rgba(201,168,76,0.4);
+transform: translateY(-3px);
+}
+
+.table-header {
+background: var(--gold-dim);
+border-bottom: 1px solid var(--border);
+padding: 0.8rem 1rem;
+display: flex;
+align-items: center;
+gap: 0.5rem;
+}
+
+.table-header .table-icon { font-size: 0.9rem; }
+.table-header h4 {
+font-family: 'DM Mono', monospace;
+font-size: 0.75rem;
+letter-spacing: 0.1em;
+color: var(--gold);
+text-transform: uppercase;
+}
+
+.table-fields { padding: 0.8rem 0; }
+.field-row {
+display: flex;
+align-items: center;
+gap: 0.6rem;
+padding: 0.35rem 1rem;
+font-size: 0.75rem;
+border-bottom: 1px solid rgba(255,255,255,0.03);
+transition: background 0.15s;
+}
+.field-row:hover { background: rgba(255,255,255,0.03); }
+.field-row:last-child { border-bottom: none; }
+
+.field-key {
+font-family: 'DM Mono', monospace;
+font-size: 0.6rem;
+padding: 0.1rem 0.4rem;
+border-radius: 2px;
+flex-shrink: 0;
+}
+.field-key.pk { background: rgba(201,168,76,0.15); color: var(--gold); }
+.field-key.fk { background: rgba(76,142,201,0.15); color: var(--blue); }
+
+.field-name { color: var(--text); flex: 1; }
+.field-type { color: var(--text-faint); font-family: 'DM Mono', monospace; font-size: 0.65rem; }
+
+/* ── FLOW CHART ── */
+.flowchart { margin-top: 3rem; }
+
+.flow-node {
+min-width: 140px;
+padding: 0.8rem 1.2rem;
+text-align: center;
+font-size: 0.78rem;
+border: 1px solid var(--border);
+background: var(--bg2);
+position: relative;
+transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+cursor: default;
+}
+.flow-node:hover {
+border-color: var(--gold);
+background: var(--bg3);
+color: var(--gold);
+transform: translateY(-3px);
+box-shadow: 0 6px 20px rgba(201,168,76,0.15);
+z-index: 2;
+}
+
+.flow-node .node-state {
+display: block;
+font-family: 'DM Mono', monospace;
+font-size: 0.58rem;
+color: var(--text-faint);
+letter-spacing: 0.1em;
+margin-bottom: 0.2rem;
+}
+
+.flow-node.state-draft { border-color: rgba(201,168,76,0.3); }
+.flow-node.state-active { border-color: rgba(76,142,201,0.5); background: rgba(76,142,201,0.05); }
+.flow-node.state-locked { border-color: rgba(201,76,76,0.5); background: rgba(201,76,76,0.05); }
+.flow-node.state-done { border-color: rgba(76,201,122,0.5); background: rgba(76,201,122,0.05); }
+
+.flow-arrow-h {
+width: 40px;
+height: 1px;
+background: var(--gold);
+opacity: 0.4;
+position: relative;
+flex-shrink: 0;
+}
+.flow-arrow-h::after {
+content: '\25B6';
+position: absolute;
+right: -6px;
+top: -6px;
+font-size: 0.55rem;
+color: var(--gold);
+opacity: 0.8;
+}
+
+.flow-stages {
+display: flex;
+align-items: center;
+gap: 0;
+justify-content: center;
+flex-wrap: wrap;
+row-gap: 1.2rem;
+}
+
+/* ── UI PRINCIPLES ── */
+.ui-grid {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 1.5rem;
+margin-top: 3rem;
+}
+
+.ui-card {
+padding: 2.2rem;
+border: 1px solid var(--border);
+background: var(--bg2);
+position: relative;
+overflow: hidden;
+transition: all 0.35s;
+}
+.ui-card::before {
+content: '';
+position: absolute;
+top: 0; left: 0;
+width: 100%; height: 2px;
+background: linear-gradient(90deg, transparent, var(--gold), transparent);
+opacity: 0;
+transition: opacity 0.3s;
+}
+.ui-card:hover {
+border-color: rgba(201,168,76,0.5);
+transform: translateY(-4px);
+box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+}
+.ui-card:hover::before { opacity: 1; }
+
+.ui-card-num {
+font-family: 'Playfair Display', serif;
+font-size: 3rem;
+font-weight: 900;
+color: var(--text-faint);
+line-height: 1;
+margin-bottom: 1rem;
+transition: color 0.3s;
+}
+.ui-card:hover .ui-card-num { color: rgba(201,168,76,0.2); }
+
+.ui-card h4 {
+font-family: 'Playfair Display', serif;
+font-size: 1.05rem;
+margin-bottom: 0.6rem;
+}
+.ui-card p { font-size: 0.83rem; color: var(--text-dim); line-height: 1.65; }
+
+/* ── TRUST BAR (minimalist, SVG icons, no boxes) ── */
+.trust-bar {
+background: transparent;
+border-top: 1px solid var(--border);
+border-bottom: 1px solid var(--border);
+padding: 1.8rem 3rem;
+display: flex;
+align-items: center;
+justify-content: space-between;
+max-width: 1280px;
+margin: 0 auto;
+gap: 2rem;
+position: relative;
+}
+.trust-bar::before, .trust-bar::after {
+content: '';
+position: absolute;
+left: 0; right: 0;
+height: 1px;
+background: linear-gradient(90deg, transparent, rgba(201,168,76,0.35), transparent);
+pointer-events: none;
+}
+.trust-bar::before { top: -1px; }
+.trust-bar::after { bottom: -1px; }
+
+.trust-item {
+display: flex;
+align-items: center;
+gap: 0.85rem;
+font-size: 0.82rem;
+font-family: 'DM Sans', sans-serif;
+letter-spacing: 0.04em;
+color: var(--text-dim);
+transition: color 0.3s;
+flex: 1;
+justify-content: center;
+position: relative;
+}
+.trust-item + .trust-item::before {
+content: '';
+position: absolute;
+left: -1rem;
+top: 50%;
+transform: translateY(-50%);
+width: 3px;
+height: 3px;
+border-radius: 50%;
+background: var(--gold);
+opacity: 0.4;
+}
+.trust-item:hover { color: var(--text); }
+
+.trust-icon {
+width: 22px;
+height: 22px;
+display: flex;
+align-items: center;
+justify-content: center;
+color: var(--gold);
+flex-shrink: 0;
+transition: transform 0.35s ease, filter 0.35s ease;
+animation: trustBreath 4s ease-in-out infinite;
+}
+.trust-icon svg { width: 100%; height: 100%; display: block; }
+.trust-item:nth-child(2) .trust-icon { animation-delay: -1s; }
+.trust-item:nth-child(3) .trust-icon { animation-delay: -2s; }
+.trust-item:nth-child(4) .trust-icon { animation-delay: -3s; }
+.trust-item:hover .trust-icon {
+transform: scale(1.15);
+filter: drop-shadow(0 0 8px rgba(201,168,76,0.7));
+}
+@keyframes trustBreath {
+0%, 100% { opacity: 0.75; }
+50% { opacity: 1; filter: drop-shadow(0 0 4px rgba(201,168,76,0.4)); }
+}
+
+/* ── FOOTER ── */
+footer {
+border-top: 1px solid var(--border);
+padding: 3.5rem 3rem;
+max-width: 1280px;
+margin: 0 auto;
+display: flex;
+align-items: center;
+justify-content: space-between;
+}
+
+.footer-logo {
+font-family: 'Playfair Display', serif;
+font-size: 1.1rem;
+font-weight: 700;
+}
+.footer-logo span { color: var(--gold); }
+
+.footer-tagline {
+font-size: 0.78rem;
+color: var(--text-faint);
+font-family: 'DM Mono', monospace;
+letter-spacing: 0.1em;
+margin-top: 0.3rem;
+}
+
+footer p {
+font-size: 0.78rem;
+color: var(--text-faint);
+text-align: right;
+line-height: 1.6;
+}
+
+.additional-tables {
+margin-top: 1.5rem;
+font-size: 0.75rem;
+color: var(--text-faint);
+font-family: 'DM Mono', monospace;
+letter-spacing: 0.06em;
+}
+
+.dispute-note {
+text-align: center;
+margin-top: 1.5rem;
+font-size: 0.75rem;
+color: var(--text-faint);
+font-family: 'DM Mono', monospace;
+letter-spacing: 0.1em;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+from { opacity: 0; transform: translateY(24px); }
+to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-gold {
+0%, 100% { box-shadow: 0 0 0 0 rgba(201,168,76,0); }
+50% { box-shadow: 0 0 0 8px rgba(201,168,76,0.15); }
+}
+
+.escrow-step:nth-child(4) .step-circle { animation: pulse-gold 2.5s 1s infinite; }
+
+/* ── SCROLL REVEAL ── */
+.reveal {
+opacity: 0;
+transform: translateY(30px);
+transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+.delay-1 { transition-delay: 0.1s; }
+.delay-2 { transition-delay: 0.2s; }
+.delay-3 { transition-delay: 0.3s; }
+.delay-4 { transition-delay: 0.4s; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+nav { padding: 1rem 1.5rem; }
+nav.scrolled { padding: 0.7rem 1.5rem; }
+.nav-links { display: none; }
+section { padding: 4rem 1.5rem; }
+.phases-grid, .roles-grid, .mechanics-grid, .sitemap-grid,
+.schema-grid, .ui-grid { grid-template-columns: 1fr; }
+.escrow-steps { grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+.escrow-steps::before { display: none; }
+.trust-bar { flex-wrap: wrap; gap: 1.5rem; padding: 1.5rem; }
+footer { flex-direction: column; gap: 1rem; text-align: center; }
+footer p { text-align: center; }
+.hero-stats { gap: 2rem; }
+.flow-stages { gap: 0.3rem; }
+}
+
+@media (max-width: 600px) {
+.hero h1 { font-size: 2.5rem; }
+.hero-stats { flex-direction: column; gap: 1.5rem; }
+.escrow-steps { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- PRELOADER -->
+<div class="preloader" id="preloader">
+  <div class="preloader-brand">Global Music <span>Exchange</span></div>
+  <div class="preloader-bar">
+    <div class="preloader-bar-fill" id="preBar"></div>
+    <div class="preloader-star" id="preStar">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+        <path d="M12 2 L13.8 9.3 L21 11 L13.8 12.7 L12 20 L10.2 12.7 L3 11 L10.2 9.3 Z"/>
+      </svg>
+    </div>
+  </div>
+  <div class="preloader-count"><em id="preCount">000</em> / 100</div>
+</div>
+
+<!-- CONSTELLATION PARTICLES -->
+<canvas id="particle-canvas"></canvas>
+
+<!-- NAV -->
+<nav>
+<div class="nav-logo">Global Music <span>Exchange</span></div>
+<ul class="nav-links">
+  <li><a href="#concept">Concept</a></li>
+  <li><a href="#roles">Roles</a></li>
+  <li><a href="#escrow">Escrow</a></li>
+  <li><a href="#architecture">Architecture</a></li>
+  <li><a href="#database">Database</a></li>
+</ul>
+<button class="nav-cta">Join Now</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="hero" style="padding-top:7rem; max-width:100%;">
+<div class="hero-grid-bg"></div>
+<div class="hero-glow"></div>
+<p class="hero-eyebrow hero-content-item d1">Global Music Exchange &mdash; Blueprint v1.0</p>
+<h1 class="hero-content-item d2">Find the <em>Sound.</em><br>Book the <em>Moment.</em></h1>
+<p class="hero-sub hero-content-item d3">A secure, transparent global marketplace connecting musicians with clients worldwide. Escrow protection. Verified reviews. Zero commission until scale.</p>
+<div class="hero-btns hero-content-item d4">
+  <button class="btn-primary">I'm a Musician &rarr;</button>
+  <button class="btn-ghost">I'm a Booker &rarr;</button>
+</div>
+<div class="hero-stats hero-content-item d5">
+  <div class="stat-item">
+    <span class="stat-num">0%</span>
+    <span class="stat-label">Commission &middot; Phase 1</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num">2</span>
+    <span class="stat-label">Marketplace Models</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-num">&infin;</span>
+    <span class="stat-label">Countries, No Limits</span>
+  </div>
+</div>
+</section>
+
+<!-- TRUST BAR -->
+<div class="trust-bar">
+<div class="trust-item">
+  <div class="trust-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="10" width="16" height="10" rx="1.5"/>
+      <path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+      <circle cx="12" cy="15" r="1.2" fill="currentColor" stroke="none"/>
+    </svg>
+  </div>
+  <span>Escrow-Protected Payments</span>
+</div>
+<div class="trust-item">
+  <div class="trust-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2l2.5 2.5L18 4l.5 3.5L22 9l-1.5 3.5L22 16l-3 1-0.5 3.5L15 19l-3 3-3-3-3.5 1.5L5 16l-3-1 1.5-3.5L2 9l3.5-1.5L6 4l3.5.5z"/>
+      <path d="M9 12l2 2 4-4"/>
+    </svg>
+  </div>
+  <span>Verified Reviews Only</span>
+</div>
+<div class="trust-item">
+  <div class="trust-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7 3h8l4 4v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>
+      <path d="M15 3v4h4"/>
+      <path d="M9 12h6"/>
+      <path d="M9 16h6"/>
+      <path d="M9 8h3"/>
+    </svg>
+  </div>
+  <span>Auto-Generated Micro-Contracts</span>
+</div>
+<div class="trust-item">
+  <div class="trust-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M3 12h18"/>
+      <path d="M12 3a13.5 13.5 0 0 1 0 18a13.5 13.5 0 0 1 0-18"/>
+    </svg>
+  </div>
+  <span>Geolocation-Based Search</span>
+</div>
+</div>
+
+<!-- CONCEPT / PHASES -->
+<section id="concept">
+<p class="section-label reveal">Core Philosophy</p>
+<h2 class="section-title reveal delay-1">&ldquo;No Show, <em>No Pay.&rdquo;</em><br>Trust is built on transactions.</h2>
+<p class="section-desc reveal delay-2">Ratings are locked until the deal is completed and paid. No fake reviews. No paid promotions. Growth first &mdash; monetization after critical mass.</p>
+
+<div class="phases-grid reveal delay-2">
+  <div class="phase-card">
+    <div class="phase-num">01</div>
+    <span class="phase-tag free">Free &middot; Growth</span>
+    <h3>Phase 1 &mdash; Building a Global Musician Database</h3>
+    <p>100% free for everyone. Musicians create profiles, clients post requests, deals are made. Every transaction builds a verified reputation that cannot be faked or bought.</p>
+  </div>
+  <div class="phase-card">
+    <div class="phase-num">02</div>
+    <span class="phase-tag paid">Commission &middot; Scale</span>
+    <h3>Phase 2 &mdash; Monetization on Success</h3>
+    <p>A small platform commission is charged only on successfully completed and confirmed deals. Cancelled or disputed &mdash; zero. Aligned incentives for all participants.</p>
+  </div>
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- USER ROLES -->
+<section id="roles">
+<p class="section-label reveal">User Roles &amp; Onboarding</p>
+<h2 class="section-title reveal delay-1">Two Dashboards.<br><em>One Ecosystem.</em></h2>
+<p class="section-desc reveal delay-2">Each user type gets a separately tailored interface with tools that match their role on the platform.</p>
+
+<div class="roles-grid">
+  <div class="role-card reveal">
+    <div class="role-icon">&#127925;</div>
+    <h3>Musician</h3>
+    <ul class="role-features">
+      <li>Social media integration &mdash; Spotify, YouTube, Instagram, SoundCloud link automatically</li>
+      <li>&ldquo;Ready for international travel&rdquo; toggle &mdash; expand your booking radius globally</li>
+      <li>Auto-generated technical rider &mdash; gear list built from your profile</li>
+      <li>Booking calendar with availability management and timezone support</li>
+      <li>Earnings dashboard with escrow status and payout history</li>
+      <li>Verified review portfolio &mdash; only from paid, completed performances</li>
+    </ul>
+  </div>
+  <div class="role-card reveal delay-1">
+    <div class="role-icon">&#128203;</div>
+    <h3>Client / Booker</h3>
+    <ul class="role-features">
+      <li>Verified company or individual profile with lightweight KYC</li>
+      <li>Advanced geolocation search &mdash; radius filter from any city center worldwide</li>
+      <li>Post open tenders or send direct offers in one click</li>
+      <li>Events dashboard &mdash; upcoming gigs, confirmation codes, archive</li>
+      <li>Escrow wallet &mdash; top up in advance, unlock after confirmation</li>
+      <li>Quick re-booking &mdash; re-hire a past musician with one tap</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- DUAL MARKETPLACE -->
+<section id="marketplace">
+<p class="section-label reveal">Dual Marketplace Mechanics</p>
+<h2 class="section-title reveal delay-1">Direct Booking <em>or</em><br>Public Tender &mdash; your choice.</h2>
+
+<div class="mechanics-grid reveal delay-2">
+  <div class="mechanic-card">
+    <span class="mechanic-badge">Model A</span>
+    <h3>Direct Booking</h3>
+    <p class="mechanic-model">The &ldquo;Booking.com&rdquo; Model</p>
+    <p>Client browses the musician catalog, filters by genre, location, availability, and budget, then sends a direct offer with a specific date and fee. Musician accepts or counter-offers.</p>
+    <div class="flow-mini">
+      <div class="flow-mini-step">Catalog</div>
+      <div class="flow-mini-arrow">&rarr;</div>
+      <div class="flow-mini-step">Send Offer</div>
+      <div class="flow-mini-arrow">&rarr;</div>
+      <div class="flow-mini-step">Musician Accepts</div>
+      <div class="flow-mini-arrow">&rarr;</div>
+      <div class="flow-mini-step">Escrow</div>
+    </div>
+  </div>
+  <div class="mechanic-card">
+    <span class="mechanic-badge" style="color:#C94C9A; background:rgba(201,76,154,0.08); border-color:rgba(201,76,154,0.3);">Model B</span>
+    <h3>Public Tender</h3>
+    <p class="mechanic-model">The &ldquo;Uber&rdquo; Model</p>
+    <p>Client posts a gig request &mdash; &ldquo;Need a Jazz Trio in Warsaw, July 20, Budget: $500.&rdquo; Musicians within the set radius get notified and apply. Client picks the best fit.</p>
+    <div class="flow-mini">
+      <div class="flow-mini-step">Post Tender</div>
+      <div class="flow-mini-arrow">&rarr;</div>
+      <div class="flow-mini-step">Musicians Apply</div>
+      <div class="flow-mini-arrow">&rarr;</div>
+      <div class="flow-mini-step">Client Selects</div>
+      <div class="flow-mini-arrow">&rarr;</div>
+      <div class="flow-mini-step">Escrow</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ESCROW SYSTEM -->
+<div class="section-full escrow-section" id="escrow">
+<div class="section-inner">
+  <p class="section-label reveal">Secure Transaction Protocol</p>
+  <h2 class="section-title reveal delay-1">The <em>Safe Deal</em> System.<br>Six steps from offer to payout.</h2>
+  <p class="section-desc reveal delay-2">Like cash on delivery, but digital and legally binding. Every step is transparent to both parties in real time.</p>
+
+  <div class="escrow-steps reveal delay-2">
+    <div class="escrow-step">
+      <div class="step-circle"><span class="step-icon">&#128179;</span></div>
+      <h4>Client Pays</h4>
+      <p>Full amount is transferred to the platform's escrow account. Partial payments are not accepted.</p>
+    </div>
+    <div class="escrow-step">
+      <div class="step-circle"><span class="step-icon">&#128274;</span></div>
+      <h4>Funds Frozen</h4>
+      <p>Money is locked. A micro-contract (1 page) is auto-generated and sent to both parties.</p>
+    </div>
+    <div class="escrow-step">
+      <div class="step-circle"><span class="step-icon">&#127926;</span></div>
+      <h4>Musician Performs</h4>
+      <p>Event day. The musician shows up and plays. The performance takes place.</p>
+    </div>
+    <div class="escrow-step">
+      <div class="step-circle" style="border-color: var(--gold); color: var(--gold)"><span class="step-icon">&#128273;</span></div>
+      <h4>Confirmation Code</h4>
+      <p>Client gives the musician a unique code &mdash; or confirms via the app.</p>
+    </div>
+    <div class="escrow-step">
+      <div class="step-circle"><span class="step-icon">&#128176;</span></div>
+      <h4>Funds Released</h4>
+      <p>Platform transfers payment to the musician. Commission is deducted (Phase 2 only).</p>
+    </div>
+    <div class="escrow-step">
+      <div class="step-circle"><span class="step-icon">&#11088;</span></div>
+      <h4>Review Unlocked</h4>
+      <p>Both parties can leave a verified review &mdash; tied to this transaction only.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- DEAL FLOW CHART -->
+<section id="flowchart">
+<p class="section-label reveal">Logic Flowchart</p>
+<h2 class="section-title reveal delay-1">From <em>Draft</em> to<br><em>Paid &amp; Reviewed.</em></h2>
+<p class="section-desc reveal delay-2">Every deal moves through defined, immutable state transitions. No skipping steps. No ambiguity.</p>
+
+<div class="flowchart reveal delay-3">
+  <div class="flow-stages">
+    <div class="flow-node state-draft">
+      <span class="node-state">01 &middot; DRAFT</span>
+      Offer Created
+    </div>
+    <div class="flow-arrow-h"></div>
+    <div class="flow-node state-draft">
+      <span class="node-state">02 &middot; PENDING</span>
+      Awaiting Response
+    </div>
+    <div class="flow-arrow-h"></div>
+    <div class="flow-node state-active">
+      <span class="node-state">03 &middot; CONFIRMED</span>
+      Both Parties Agree
+    </div>
+    <div class="flow-arrow-h"></div>
+    <div class="flow-node state-locked">
+      <span class="node-state">04 &middot; ESCROWED</span>
+      Funds Frozen + Contract
+    </div>
+    <div class="flow-arrow-h"></div>
+    <div class="flow-node state-active">
+      <span class="node-state">05 &middot; LIVE</span>
+      Event Happening
+    </div>
+    <div class="flow-arrow-h"></div>
+    <div class="flow-node state-active">
+      <span class="node-state">06 &middot; CONFIRMING</span>
+      Code Exchange
+    </div>
+    <div class="flow-arrow-h"></div>
+    <div class="flow-node state-done">
+      <span class="node-state">07 &middot; PAID</span>
+      Funds Released
+    </div>
+    <div class="flow-arrow-h"></div>
+    <div class="flow-node state-done" style="border-color:var(--gold); background:var(--gold-dim)">
+      <span class="node-state">08 &middot; CLOSED</span>
+      Review Unlocked
+    </div>
+  </div>
+  <p class="dispute-note">DISPUTE PATH: Any state 03&ndash;06 &rarr; DISPUTED &rarr; Arbitration &rarr; Resolution &rarr; Continue</p>
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- SITEMAP -->
+<section id="architecture">
+<p class="section-label reveal">Sitemap</p>
+<h2 class="section-title reveal delay-1">All Essential <em>Pages.</em></h2>
+
+<div class="sitemap-grid reveal delay-2">
+  <div class="sitemap-col">
+    <h4>Public / Landing</h4>
+    <ul>
+      <li>Home / Landing</li>
+      <li>How It Works</li>
+      <li>For Musicians</li>
+      <li>For Clients</li>
+      <li>Pricing &amp; Commission</li>
+      <li>Trust &amp; Safety</li>
+      <li>Blog</li>
+      <li>Sign Up / Log In</li>
+    </ul>
+  </div>
+  <div class="sitemap-col">
+    <h4>Musician Dashboard</h4>
+    <ul>
+      <li>Profile Builder</li>
+      <li>Social Links</li>
+      <li>Technical Rider</li>
+      <li>Calendar / Availability</li>
+      <li>Incoming Offers</li>
+      <li>Active Bookings</li>
+      <li>Earnings &amp; Payouts</li>
+      <li>My Reviews</li>
+    </ul>
+  </div>
+  <div class="sitemap-col">
+    <h4>Client Dashboard</h4>
+    <ul>
+      <li>Search Musicians</li>
+      <li>Post a Tender</li>
+      <li>My Applications</li>
+      <li>Sent Offers</li>
+      <li>Active Bookings</li>
+      <li>Confirmation Codes</li>
+      <li>Transaction History</li>
+      <li>My Reviews</li>
+    </ul>
+  </div>
+  <div class="sitemap-col">
+    <h4>Booking &amp; Deal Flow</h4>
+    <ul>
+      <li>Offer Builder</li>
+      <li>Contract Preview</li>
+      <li>Payment / Escrow</li>
+      <li>Deal Status Tracker</li>
+      <li>Code Entry Page</li>
+      <li>Dispute Center</li>
+      <li>Review &amp; Rating</li>
+      <li>Receipt / Archive</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- DATABASE SCHEMA -->
+<section id="database">
+<p class="section-label reveal">Database Schema</p>
+<h2 class="section-title reveal delay-1">Key Tables &amp;<br><em>Relations.</em></h2>
+
+<div class="schema-grid reveal delay-2">
+  <!-- USERS -->
+  <div class="table-card">
+    <div class="table-header">
+      <span class="table-icon">&#128100;</span>
+      <h4>users</h4>
+    </div>
+    <div class="table-fields">
+      <div class="field-row"><span class="field-key pk">PK</span><span class="field-name">user_id</span><span class="field-type">uuid</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">email</span><span class="field-type">varchar</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">role</span><span class="field-type">enum</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">full_name</span><span class="field-type">varchar</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">location_lat</span><span class="field-type">float</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">location_lng</span><span class="field-type">float</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">travel_ready</span><span class="field-type">bool</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">verified_at</span><span class="field-type">timestamp</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">rating_avg</span><span class="field-type">float</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">created_at</span><span class="field-type">timestamp</span></div>
+    </div>
+  </div>
+
+  <!-- GIGS -->
+  <div class="table-card">
+    <div class="table-header">
+      <span class="table-icon">&#127928;</span>
+      <h4>gigs</h4>
+    </div>
+    <div class="table-fields">
+      <div class="field-row"><span class="field-key pk">PK</span><span class="field-name">gig_id</span><span class="field-type">uuid</span></div>
+      <div class="field-row"><span class="field-key fk">FK</span><span class="field-name">client_id</span><span class="field-type">&rarr; users</span></div>
+      <div class="field-row"><span class="field-key fk">FK</span><span class="field-name">musician_id</span><span class="field-type">&rarr; users</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">type</span><span class="field-type">enum</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">status</span><span class="field-type">enum</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">event_date</span><span class="field-type">timestamp</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">location</span><span class="field-type">point</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">budget</span><span class="field-type">decimal</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">confirm_code</span><span class="field-type">varchar</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">contract_url</span><span class="field-type">varchar</span></div>
+    </div>
+  </div>
+
+  <!-- PAYMENTS -->
+  <div class="table-card">
+    <div class="table-header">
+      <span class="table-icon">&#128176;</span>
+      <h4>payments</h4>
+    </div>
+    <div class="table-fields">
+      <div class="field-row"><span class="field-key pk">PK</span><span class="field-name">payment_id</span><span class="field-type">uuid</span></div>
+      <div class="field-row"><span class="field-key fk">FK</span><span class="field-name">gig_id</span><span class="field-type">&rarr; gigs</span></div>
+      <div class="field-row"><span class="field-key fk">FK</span><span class="field-name">payer_id</span><span class="field-type">&rarr; users</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">amount</span><span class="field-type">decimal</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">currency</span><span class="field-type">varchar</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">escrow_status</span><span class="field-type">enum</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">commission</span><span class="field-type">decimal</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">frozen_at</span><span class="field-type">timestamp</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">released_at</span><span class="field-type">timestamp</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">provider_ref</span><span class="field-type">varchar</span></div>
+    </div>
+  </div>
+
+  <!-- REVIEWS -->
+  <div class="table-card">
+    <div class="table-header">
+      <span class="table-icon">&#11088;</span>
+      <h4>reviews</h4>
+    </div>
+    <div class="table-fields">
+      <div class="field-row"><span class="field-key pk">PK</span><span class="field-name">review_id</span><span class="field-type">uuid</span></div>
+      <div class="field-row"><span class="field-key fk">FK</span><span class="field-name">gig_id</span><span class="field-type">&rarr; gigs</span></div>
+      <div class="field-row"><span class="field-key fk">FK</span><span class="field-name">reviewer_id</span><span class="field-type">&rarr; users</span></div>
+      <div class="field-row"><span class="field-key fk">FK</span><span class="field-name">reviewee_id</span><span class="field-type">&rarr; users</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">rating</span><span class="field-type">int 1&ndash;5</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">text</span><span class="field-type">text</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">verified</span><span class="field-type">bool</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">unlocked_at</span><span class="field-type">timestamp</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">visible</span><span class="field-type">bool</span></div>
+      <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">created_at</span><span class="field-type">timestamp</span></div>
+    </div>
+  </div>
+</div>
+
+<p class="additional-tables">
+  Additional tables: profiles &middot; social_links &middot; riders &middot; tenders &middot; applications &middot; disputes &middot; notifications &middot; audit_log
+</p>
+</section>
+
+<div class="divider"></div>
+
+<!-- UI/UX STRATEGY -->
+<section id="ux">
+<p class="section-label reveal">UI/UX Strategy</p>
+<h2 class="section-title reveal delay-1">Complex Logic.<br><em>Simple Experience.</em></h2>
+<p class="section-desc reveal delay-2">Legal and financial complexity is hidden behind clean, progressively disclosed interfaces that guide the user step by step.</p>
+
+<div class="ui-grid reveal delay-2">
+  <div class="ui-card">
+    <div class="ui-card-num">01</div>
+    <h4>Progressive Disclosure</h4>
+    <p>Legal and financial steps are broken into small, focused screens. Users see only what's needed now &mdash; contract details are available on demand, never forced upfront.</p>
+  </div>
+  <div class="ui-card">
+    <div class="ui-card-num">02</div>
+    <h4>Deal Status Front &amp; Center</h4>
+    <p>Every dashboard starts with deal status. A clear visual pipeline (Draft &rarr; Paid) instead of confusing notification lists. Color-coded states &mdash; instantly clear what needs action.</p>
+  </div>
+  <div class="ui-card">
+    <div class="ui-card-num">03</div>
+    <h4>One Primary Action Per Screen</h4>
+    <p>At every critical step &mdash; accepting an offer, paying into escrow, entering a code &mdash; exactly one prominent button. All secondary options fade to the background.</p>
+  </div>
+  <div class="ui-card">
+    <div class="ui-card-num">04</div>
+    <h4>Trust Signals at Every Step</h4>
+    <p>Escrow balance is always visible. Contract is always one tap away. Platform commission is shown before payment confirmation. No surprises, ever.</p>
+  </div>
+  <div class="ui-card">
+    <div class="ui-card-num">05</div>
+    <h4>Native Geo Search</h4>
+    <p>Musician search with a map-first interface and radius slider. City autocomplete with a &ldquo;find musicians near the venue&rdquo; button. Distance shown in travel hours, not just km.</p>
+  </div>
+  <div class="ui-card">
+    <div class="ui-card-num">06</div>
+    <h4>Mobile-First for Musicians</h4>
+    <p>Musicians receive and manage bookings from their phone. Push notifications for offers. One-tap confirmation code entry. Offline gig details view with rider and map.</p>
+  </div>
+</div>
+</section>
+
+<!-- FOOTER -->
+<div class="divider"></div>
+<footer>
+<div>
+  <div class="footer-logo">Global Music <span>Exchange</span></div>
+  <div class="footer-tagline">Platform Architecture Blueprint &middot; v1.0</div>
+</div>
+<p>Built with precision. Designed for scale.<br>Phase 1: Free. Phase 2: Commission after completion.</p>
+</footer>
+
+<script>
+// Scroll reveal
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+entries.forEach(e => {
+  if (e.isIntersecting) {
+    e.target.classList.add('visible');
+  }
+});
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+reveals.forEach(el => observer.observe(el));
+
+// Escrow step interaction
+const steps = document.querySelectorAll('.escrow-step');
+steps.forEach((step, i) => {
+step.addEventListener('mouseenter', () => {
+  steps.forEach((s, j) => {
+    s.style.opacity = j <= i ? '1' : '0.35';
+    s.style.transition = 'opacity 0.3s';
+  });
+});
+step.addEventListener('mouseleave', () => {
+  steps.forEach(s => s.style.opacity = '1');
+});
+});
+
+// Nav shrink on scroll
+const nav = document.querySelector('nav');
+window.addEventListener('scroll', () => {
+nav.classList.toggle('scrolled', window.scrollY > 60);
+});
+
+// Nav active state on scroll
+const navLinks = document.querySelectorAll('.nav-links a');
+const sections = document.querySelectorAll('section[id]');
+
+window.addEventListener('scroll', () => {
+let current = '';
+sections.forEach(s => {
+  if (window.scrollY >= s.offsetTop - 100) current = s.id;
+});
+navLinks.forEach(a => {
+  const isActive = a.getAttribute('href') === '#' + current;
+  a.style.color = isActive ? 'var(--gold)' : '';
+});
+});
+
+// ── PRELOADER ──
+(function() {
+  const preEl = document.getElementById('preloader');
+  const preBar = document.getElementById('preBar');
+  const preStar = document.getElementById('preStar');
+  const preCount = document.getElementById('preCount');
+  const duration = 1600;
+  const start = performance.now();
+  let done = false;
+
+  function tick(now) {
+    const p = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - p, 3);
+    preCount.textContent = String(Math.floor(eased * 100)).padStart(3, '0');
+    preBar.style.width = (eased * 100) + '%';
+    if (preStar) preStar.style.left = (eased * 100) + '%';
+    if (p < 1) requestAnimationFrame(tick);
+    else finish();
+  }
+  requestAnimationFrame(tick);
+
+  function finish() {
+    if (done) return;
+    done = true;
+    preEl.classList.add('hidden');
+    setTimeout(() => { try { preEl.remove(); } catch(e){} }, 800);
+
+    // Wait briefly for world-map data before starting Phase A
+    const waitStart = performance.now();
+    (function waitForMap() {
+      const waited = performance.now() - waitStart;
+      const ready = (typeof window.__isMapReady === 'function') && window.__isMapReady();
+      if (ready || waited >= 1800) {
+        // PHASE A — map + twinkling stars, no text, no lines, no traffic
+        if (window.__startGlobeA) window.__startGlobeA();
+        // PHASE B after 2.5s — borders fade out, decorative stars tuck out, lines & traffic begin
+        setTimeout(() => {
+          if (window.__startGlobeB) window.__startGlobeB();
+          // Hero text only AFTER borders & decorative stars fully faded + brief pause
+          // Border fade: 1.3s. Stars fade: 1.1s. Gap before text: 400ms → total 1.7s.
+          setTimeout(() => {
+            const hero = document.getElementById('hero');
+            if (hero) hero.classList.add('ready');
+          }, 1700);
+        }, 2500);
+      } else {
+        setTimeout(waitForMap, 80);
+      }
+    })();
+  }
+
+  // Safety: force hide after 3s if something hangs
+  setTimeout(finish, 3000);
+})();
+
+// ── GLOBAL MUSIC CONSTELLATION MAP ──
+(function() {
+  const canvas = document.getElementById('particle-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * DPR;
+    canvas.height = H * DPR;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  resize();
+
+  // ── CITIES (real geo coords, 3 tiers) ──
+  const CITIES = [
+    // tier 3 — Poland active
+    { name: 'Warsaw',   lat: 52.23, lng: 21.01, tier: 3, region: 'eu' },
+    { name: 'Kraków',   lat: 50.06, lng: 19.94, tier: 3, region: 'eu' },
+    { name: 'Gdańsk',   lat: 54.35, lng: 18.65, tier: 3, region: 'eu' },
+    { name: 'Wrocław',  lat: 51.11, lng: 17.03, tier: 3, region: 'eu' },
+    { name: 'Poznań',   lat: 52.41, lng: 16.93, tier: 3, region: 'eu' },
+    // tier 2 — coming Q2 2026
+    { name: 'Berlin',   lat: 52.52, lng: 13.40, tier: 2, region: 'eu' },
+    { name: 'Prague',   lat: 50.08, lng: 14.44, tier: 2, region: 'eu' },
+    { name: 'Vilnius',  lat: 54.69, lng: 25.28, tier: 2, region: 'eu' },
+    { name: 'Kyiv',     lat: 50.45, lng: 30.52, tier: 2, region: 'eu' },
+    { name: 'Vienna',   lat: 48.21, lng: 16.37, tier: 2, region: 'eu' },
+    { name: 'Budapest', lat: 47.50, lng: 19.04, tier: 2, region: 'eu' },
+    // tier 1 — global Europe
+    { name: 'London',    lat: 51.51, lng:  -0.13, tier: 1, region: 'eu' },
+    { name: 'Paris',     lat: 48.86, lng:   2.35, tier: 1, region: 'eu' },
+    { name: 'Madrid',    lat: 40.42, lng:  -3.70, tier: 1, region: 'eu' },
+    { name: 'Barcelona', lat: 41.38, lng:   2.17, tier: 1, region: 'eu' },
+    { name: 'Rome',      lat: 41.90, lng:  12.50, tier: 1, region: 'eu' },
+    { name: 'Milan',     lat: 45.46, lng:   9.19, tier: 1, region: 'eu' },
+    { name: 'Amsterdam', lat: 52.37, lng:   4.90, tier: 1, region: 'eu' },
+    { name: 'Brussels',  lat: 50.85, lng:   4.35, tier: 1, region: 'eu' },
+    { name: 'Copenhagen',lat: 55.68, lng:  12.57, tier: 1, region: 'eu' },
+    { name: 'Stockholm', lat: 59.33, lng:  18.07, tier: 1, region: 'eu' },
+    { name: 'Oslo',      lat: 59.91, lng:  10.75, tier: 1, region: 'eu' },
+    { name: 'Helsinki',  lat: 60.17, lng:  24.94, tier: 1, region: 'eu' },
+    { name: 'Dublin',    lat: 53.34, lng:  -6.26, tier: 1, region: 'eu' },
+    { name: 'Lisbon',    lat: 38.72, lng:  -9.13, tier: 1, region: 'eu' },
+    { name: 'Athens',    lat: 37.98, lng:  23.73, tier: 1, region: 'eu' },
+    { name: 'Istanbul',  lat: 41.01, lng:  28.98, tier: 1, region: 'eu' },
+    { name: 'Zurich',    lat: 47.38, lng:   8.54, tier: 1, region: 'eu' },
+    { name: 'Munich',    lat: 48.14, lng:  11.58, tier: 1, region: 'eu' },
+    { name: 'Hamburg',   lat: 53.55, lng:  10.00, tier: 1, region: 'eu' },
+    { name: 'Moscow',    lat: 55.75, lng:  37.62, tier: 1, region: 'eu' },
+    // North America
+    { name: 'NYC',         lat: 40.71, lng: -74.01, tier: 1, region: 'na' },
+    { name: 'LA',          lat: 34.05, lng: -118.24, tier: 1, region: 'na' },
+    { name: 'Chicago',     lat: 41.88, lng: -87.63, tier: 1, region: 'na' },
+    { name: 'Toronto',     lat: 43.65, lng: -79.38, tier: 1, region: 'na' },
+    { name: 'Montreal',    lat: 45.50, lng: -73.57, tier: 1, region: 'na' },
+    { name: 'Vancouver',   lat: 49.28, lng: -123.12, tier: 1, region: 'na' },
+    { name: 'Miami',       lat: 25.76, lng: -80.19, tier: 1, region: 'na' },
+    { name: 'SF',          lat: 37.77, lng: -122.42, tier: 1, region: 'na' },
+    { name: 'Seattle',     lat: 47.60, lng: -122.33, tier: 1, region: 'na' },
+    { name: 'Austin',      lat: 30.27, lng: -97.74, tier: 1, region: 'na' },
+    { name: 'Mexico City', lat: 19.43, lng: -99.13, tier: 1, region: 'na' },
+    { name: 'Boston',      lat: 42.36, lng: -71.06, tier: 1, region: 'na' },
+    // South America
+    { name: 'São Paulo',    lat: -23.55, lng: -46.63, tier: 1, region: 'sa' },
+    { name: 'Rio',          lat: -22.91, lng: -43.17, tier: 1, region: 'sa' },
+    { name: 'Buenos Aires', lat: -34.60, lng: -58.38, tier: 1, region: 'sa' },
+    { name: 'Santiago',     lat: -33.45, lng: -70.67, tier: 1, region: 'sa' },
+    { name: 'Lima',         lat: -12.05, lng: -77.04, tier: 1, region: 'sa' },
+    { name: 'Bogotá',       lat:   4.71, lng: -74.07, tier: 1, region: 'sa' },
+    // Asia
+    { name: 'Tokyo',        lat: 35.68, lng: 139.69, tier: 1, region: 'as' },
+    { name: 'Seoul',        lat: 37.57, lng: 126.98, tier: 1, region: 'as' },
+    { name: 'Shanghai',     lat: 31.23, lng: 121.47, tier: 1, region: 'as' },
+    { name: 'Beijing',      lat: 39.90, lng: 116.41, tier: 1, region: 'as' },
+    { name: 'Hong Kong',    lat: 22.32, lng: 114.17, tier: 1, region: 'as' },
+    { name: 'Singapore',    lat:  1.35, lng: 103.82, tier: 1, region: 'as' },
+    { name: 'Bangkok',      lat: 13.76, lng: 100.50, tier: 1, region: 'as' },
+    { name: 'Jakarta',      lat: -6.21, lng: 106.85, tier: 1, region: 'as' },
+    { name: 'Manila',       lat: 14.60, lng: 120.98, tier: 1, region: 'as' },
+    { name: 'Mumbai',       lat: 19.08, lng:  72.88, tier: 1, region: 'as' },
+    { name: 'Delhi',        lat: 28.70, lng:  77.10, tier: 1, region: 'as' },
+    { name: 'Dubai',        lat: 25.20, lng:  55.27, tier: 1, region: 'as' },
+    { name: 'Tel Aviv',     lat: 32.08, lng:  34.78, tier: 1, region: 'as' },
+    { name: 'Taipei',       lat: 25.03, lng: 121.57, tier: 1, region: 'as' },
+    { name: 'Osaka',        lat: 34.69, lng: 135.50, tier: 1, region: 'as' },
+    { name: 'Kuala Lumpur', lat:  3.14, lng: 101.69, tier: 1, region: 'as' },
+    // Africa
+    { name: 'Lagos',        lat:   6.52, lng:   3.38, tier: 1, region: 'af' },
+    { name: 'Cairo',        lat:  30.04, lng:  31.24, tier: 1, region: 'af' },
+    { name: 'Johannesburg', lat: -26.20, lng:  28.05, tier: 1, region: 'af' },
+    { name: 'Cape Town',    lat: -33.92, lng:  18.42, tier: 1, region: 'af' },
+    { name: 'Nairobi',      lat:  -1.29, lng:  36.82, tier: 1, region: 'af' },
+    { name: 'Casablanca',   lat:  33.57, lng:  -7.59, tier: 1, region: 'af' },
+    { name: 'Accra',        lat:   5.56, lng:  -0.20, tier: 1, region: 'af' },
+    // Oceania
+    { name: 'Sydney',    lat: -33.87, lng: 151.21, tier: 1, region: 'oc' },
+    { name: 'Melbourne', lat: -37.81, lng: 144.96, tier: 1, region: 'oc' },
+    { name: 'Auckland',  lat: -36.85, lng: 174.76, tier: 1, region: 'oc' },
+    { name: 'Perth',     lat: -31.95, lng: 115.86, tier: 1, region: 'oc' }
+  ];
+
+  // ── PROJECTION ──
+  function project(lat, lng) {
+    const padX = Math.min(80, W * 0.05);
+    const mapW = W - padX * 2;
+    const padTop = H * 0.10;
+    const mapH = H * 0.85;
+    const x = padX + ((lng + 180) / 360) * mapW;
+    const y = padTop + ((72 - lat) / (72 + 55)) * mapH;
+    return { x, y };
+  }
+
+  let positions = [];
+  function computePositions() {
+    positions = CITIES.map(c => project(c.lat, c.lng));
+    computeMapDotPositions();
+  }
+
+  // ── WORLD MAP DOTS (continent silhouettes via bounding boxes) ──
+  // Each entry: [minLat, maxLat, minLng, maxLng, count]
+  const LAND_BOXES = [
+    // EUROPE (dense)
+    [36, 44, -10, 3, 30],    // Iberia
+    [42, 50, -5, 8, 40],     // France / Benelux
+    [45, 55, 6, 15, 45],     // Germany / Central
+    [47, 55, 15, 24, 32],    // Poland / Czech
+    [36, 47, 12, 22, 36],    // Italy / Balkans
+    [50, 60, -10, 3, 28],    // UK / Ireland
+    [55, 71, 4, 32, 60],     // Scandinavia
+    [44, 66, 24, 60, 110],   // European Russia
+    [36, 47, 22, 32, 20],    // Greece / Turkey west
+    // NORTH AMERICA
+    [25, 50, -125, -100, 80],// Western US/Canada
+    [30, 50, -100, -80, 60], // Central US
+    [30, 50, -80, -65, 50],  // Eastern US
+    [48, 70, -140, -95, 110],// Canada N
+    [48, 70, -95, -55, 100], // Canada E/Quebec
+    [55, 72, -165, -140, 40],// Alaska
+    [18, 32, -115, -85, 45], // Mexico
+    [8, 20, -92, -78, 24],   // C America
+    // GREENLAND
+    [60, 78, -55, -20, 60],
+    // SOUTH AMERICA
+    [-5, 12, -80, -50, 70],  // N S.America
+    [-18, -5, -78, -42, 90], // Amazon
+    [-30, -18, -72, -40, 80],// Central Brazil
+    [-40, -30, -72, -55, 36],// Argentina N
+    [-55, -40, -74, -62, 32],// Southern cone
+    // AFRICA
+    [20, 35, -12, 32, 90],   // N Africa (Sahara)
+    [4, 20, -18, 40, 110],   // Sahel / W Africa
+    [-5, 10, 8, 42, 90],     // Central Africa
+    [-20, -5, 12, 40, 80],   // Southern Africa N
+    [-35, -20, 14, 35, 56],  // Southern Africa
+    [-28, -10, 40, 51, 24],  // Madagascar / E
+    // MIDDLE EAST
+    [12, 40, 33, 62, 90],
+    // ASIA
+    [35, 55, 55, 85, 80],    // Central Asia
+    [22, 45, 72, 100, 90],   // W China / India
+    [28, 50, 100, 125, 100], // China east
+    [30, 46, 128, 146, 32],  // Korea / Japan
+    [8, 28, 70, 92, 50],     // India
+    [10, 25, 92, 108, 36],   // SE Asia mainland
+    [55, 72, 60, 140, 120],  // Siberia
+    [48, 60, 130, 155, 40],  // Russian far east
+    // SE ASIA ISLANDS
+    [-10, 8, 95, 142, 60],   // Indonesia / Philippines
+    [12, 20, 120, 126, 12],  // N Philippines
+    // OCEANIA
+    [-38, -12, 114, 154, 110],// Australia
+    [-47, -34, 166, 178, 20], // New Zealand
+    [-10, -2, 140, 155, 12]   // PNG
+  ];
+
+  let mapDots = [];
+  let decorativeStars = [];
+  function computeMapDotPositions() {
+    mapDots = [];
+    decorativeStars = [];
+    // Use deterministic seeded pseudo-random so pattern is stable across resizes
+    let seed = 12345;
+    function srand() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+    LAND_BOXES.forEach(box => {
+      const [latA, latB, lngA, lngB, count] = box;
+      // Exclude Russia from decorative stars (user request — Russia should be empty)
+      const isRussia =
+        (latA === 44 && lngA === 24) ||    // European Russia
+        (latA === 55 && lngA === 60) ||    // Siberia
+        (latA === 48 && lngA === 130);     // Far east
+      for (let i = 0; i < count; i++) {
+        const lat = latA + srand() * (latB - latA);
+        const lng = lngA + srand() * (lngB - lngA);
+        mapDots.push(project(lat, lng));
+      }
+      if (!isRussia) {
+        // Generate decorative "stars" scattered inside countries
+        const starCount = Math.floor(count * 1.6);
+        for (let i = 0; i < starCount; i++) {
+          const lat = latA + srand() * (latB - latA);
+          const lng = lngA + srand() * (lngB - lngA);
+          const pos = project(lat, lng);
+          decorativeStars.push({
+            x: pos.x, y: pos.y,
+            r: 0.5 + srand() * 0.9,
+            baseAlpha: 0.25 + srand() * 0.55,
+            twPhase: srand() * Math.PI * 2,
+            twSpeed: 0.0007 + srand() * 0.0022
+          });
+        }
+      }
+    });
+  }
+
+  computePositions();
+  window.addEventListener('resize', () => { resize(); computePositions(); prerenderMap(); });
+
+  // ── REAL COUNTRY BORDERS VIA world-atlas ──
+  let countriesGeo = null;
+  let mapCanvas = null;
+  let mapReady = false;
+  window.__isMapReady = function() { return mapReady; };
+
+  function drawRings(c, rings) {
+    rings.forEach(ring => {
+      c.beginPath();
+      for (let i = 0; i < ring.length; i++) {
+        const pt = ring[i];
+        const pos = project(pt[1], pt[0]); // geojson is [lng, lat]
+        if (i === 0) c.moveTo(pos.x, pos.y);
+        else c.lineTo(pos.x, pos.y);
+      }
+      c.stroke();
+    });
+  }
+
+  function prerenderMap() {
+    if (!countriesGeo || W === 0) return;
+    mapCanvas = document.createElement('canvas');
+    mapCanvas.width = W * DPR;
+    mapCanvas.height = H * DPR;
+    const mctx = mapCanvas.getContext('2d');
+    mctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    mctx.strokeStyle = 'rgba(201, 168, 76, 0.22)';
+    mctx.lineWidth = 0.5;
+    mctx.lineJoin = 'round';
+    mctx.lineCap = 'round';
+    countriesGeo.features.forEach(country => {
+      const geom = country.geometry;
+      if (!geom) return;
+      if (geom.type === 'Polygon') {
+        drawRings(mctx, geom.coordinates);
+      } else if (geom.type === 'MultiPolygon') {
+        geom.coordinates.forEach(poly => drawRings(mctx, poly));
+      }
+    });
+    mapReady = true;
+  }
+
+  // Load topojson + world-atlas
+  (function loadMap() {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js';
+    s.onload = function() {
+      fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
+        .then(r => r.json())
+        .then(topo => {
+          countriesGeo = window.topojson.feature(topo, topo.objects.countries);
+          prerenderMap();
+        })
+        .catch(e => console.warn('world-atlas fetch failed', e));
+    };
+    s.onerror = function() { console.warn('topojson-client failed to load — falling back to dots'); };
+    document.head.appendChild(s);
+  })();
+
+  // ── AUTO BUILD CONSTELLATION LINKS (2 nearest in same region) ──
+  function distSq(a, b) {
+    const dx = a.lng - b.lng, dy = a.lat - b.lat;
+    return dx*dx + dy*dy;
+  }
+  const LINKS = [];
+  const byRegion = {};
+  CITIES.forEach(c => { (byRegion[c.region] = byRegion[c.region] || []).push(c); });
+  const keys = new Set();
+  Object.values(byRegion).forEach(group => {
+    group.forEach(c => {
+      const others = group.filter(o => o !== c);
+      others.sort((a, b) => distSq(c, a) - distSq(c, b));
+      const take = c.tier === 3 ? 3 : 2; // Polish cities get more connections
+      for (let k = 0; k < Math.min(take, others.length); k++) {
+        const o = others[k];
+        const a = CITIES.indexOf(c), b = CITIES.indexOf(o);
+        const key = a < b ? a + '-' + b : b + '-' + a;
+        if (!keys.has(key)) {
+          keys.add(key);
+          LINKS.push({ a: Math.min(a,b), b: Math.max(a,b) });
+        }
+      }
+    });
+  });
+
+  // ── PHASE STATE MACHINE ──
+  // Phase A: map + stars visible, no lines/traffic. Triggered by preloader complete.
+  // Phase B: map fades out, lines trace in, traffic begins. Triggered ~1.5s after A.
+  let phaseAStartedAt = 0;
+  let phaseBStartedAt = 0;
+  window.__startGlobeA = function() {
+    if (phaseAStartedAt === 0) phaseAStartedAt = performance.now();
+  };
+  window.__startGlobeB = function() {
+    if (phaseBStartedAt === 0) phaseBStartedAt = performance.now();
+  };
+
+  // City stagger (offsets from Phase A start)
+  const cityDelays = CITIES.map((c, i) => {
+    if (c.tier === 1) return 100 + Math.random() * 600;
+    if (c.tier === 2) return 600 + Math.random() * 250;
+    return 850 + i * 70; // Poland appears last for emphasis
+  });
+
+  // ── DEAL PULSES (no tickers in v4) ──
+  const pulses = [];
+  let lastPulseAt = 0;
+
+  const polishLinks = LINKS.filter(l => CITIES[l.a].tier === 3 || CITIES[l.b].tier === 3);
+
+  function spawnPulse(now) {
+    if (pulses.length >= 3 || polishLinks.length === 0) return;
+    const link = polishLinks[Math.floor(Math.random() * polishLinks.length)];
+    let from = link.a, to = link.b;
+    if (CITIES[to].tier === 3 && CITIES[from].tier !== 3) { from = link.b; to = link.a; }
+    else if (CITIES[from].tier === 3 && CITIES[to].tier === 3) {
+      if (Math.random() < 0.5) { const t = from; from = to; to = t; }
+    }
+    pulses.push({ from, to, start: now, duration: 1500 + Math.random() * 500 });
+  }
+
+  // ── SOUND WAVES (slow cross-continental relay) ──
+  const soundWaves = [];
+  let lastWaveAt = 0;
+  const WAVE_DURATION = 28000;     // very slow drift — relay feels deliberate
+  const MAX_WAVES = 5;              // global cap: 5 waves simultaneously
+  const MIN_IGNITE_KM = 5500;       // only far stars on other continents can ignite
+
+  function getWaveMaxRadius() {
+    // Big enough to cross half the world from any point
+    return Math.max(W, H) * 0.9;
+  }
+  function getMinIgnitePx() {
+    // Earth circumference ≈ 40 000 km fits into W (longitude span)
+    return (MIN_IGNITE_KM / 40000) * W;
+  }
+
+  function spawnSoundWave(now, cityIdx, gen) {
+    if (soundWaves.length >= MAX_WAVES) return false;
+    soundWaves.push({
+      cityIdx: cityIdx,
+      start: now,
+      duration: WAVE_DURATION,
+      gen: gen || 0,
+      hasIgnited: false
+    });
+    return true;
+  }
+  function spawnPolishSoundWave(now) {
+    const polishIdxs = [];
+    CITIES.forEach((c, i) => { if (c.tier === 3) polishIdxs.push(i); });
+    if (polishIdxs.length === 0) return;
+    const idx = polishIdxs[Math.floor(Math.random() * polishIdxs.length)];
+    spawnSoundWave(now, idx, 0);
+  }
+
+  // ── CITY FLARES (flash when pulse arrives) ──
+  const cityFlares = Object.create(null);
+
+  // First line Warsaw→Berlin for dramatic opening of Phase B
+  const warsawIdx = CITIES.findIndex(c => c.name === 'Warsaw');
+  const berlinIdx = CITIES.findIndex(c => c.name === 'Berlin');
+  const heroLinkIdx = LINKS.findIndex(l =>
+    (l.a === warsawIdx && l.b === berlinIdx) ||
+    (l.a === berlinIdx && l.b === warsawIdx)
+  );
+
+  // ── RENDER LOOP ──
+  let paused = false;
+  document.addEventListener('visibilitychange', () => { paused = document.hidden; });
+
+  function draw() {
+    if (paused) { requestAnimationFrame(draw); return; }
+    const now = performance.now();
+
+    // Phase A not started yet — keep canvas blank (preloader still showing)
+    if (phaseAStartedAt === 0) {
+      ctx.clearRect(0, 0, W, H);
+      requestAnimationFrame(draw);
+      return;
+    }
+
+    const sinceA = now - phaseAStartedAt;
+    const sinceB = phaseBStartedAt > 0 ? now - phaseBStartedAt : 0;
+    const inPhaseB = phaseBStartedAt > 0;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // 0. WORLD MAP — real country borders (fades in Phase A, out Phase B)
+    let mapOpacity = Math.min(1, Math.max(0, (sinceA - 50) / 800));
+    if (inPhaseB) {
+      mapOpacity *= Math.max(0, 1 - sinceB / 1300);
+    }
+    if (mapOpacity > 0.01) {
+      if (mapReady && mapCanvas) {
+        let alphaMult = 1;
+        if (!inPhaseB) {
+          const breath = 0.82 + 0.18 * Math.sin(now * 0.0012);
+          alphaMult = breath;
+        }
+        ctx.save();
+        ctx.globalAlpha = mapOpacity * alphaMult;
+        ctx.drawImage(mapCanvas, 0, 0, W, H);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = 'rgba(232, 201, 106, ' + (0.18 * mapOpacity) + ')';
+        for (let i = 0; i < mapDots.length; i++) {
+          const d = mapDots[i];
+          ctx.beginPath();
+          ctx.arc(d.x, d.y, 1.1, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+
+    // 0b. DECORATIVE STARS (many stars inside countries, no Russia) — Phase A only
+    let starsOpacity = Math.min(1, Math.max(0, (sinceA - 200) / 900));
+    if (inPhaseB) {
+      starsOpacity *= Math.max(0, 1 - sinceB / 1100);
+    }
+    if (starsOpacity > 0.01) {
+      for (let i = 0; i < decorativeStars.length; i++) {
+        const s = decorativeStars[i];
+        const tw = 0.55 + 0.45 * Math.sin(now * s.twSpeed + s.twPhase);
+        const alpha = s.baseAlpha * tw * starsOpacity;
+        // soft glow
+        const gR = s.r * 3.5;
+        const grd = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, gR);
+        grd.addColorStop(0, 'rgba(232, 201, 106, ' + (alpha * 0.35) + ')');
+        grd.addColorStop(1, 'rgba(232, 201, 106, 0)');
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, gR, 0, Math.PI * 2);
+        ctx.fill();
+        // core
+        ctx.fillStyle = 'rgba(240, 220, 150, ' + alpha + ')';
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // 1. CONSTELLATION LINES + TRAFFIC — only in Phase B
+    if (inPhaseB) {
+      ctx.lineCap = 'round';
+      for (let i = 0; i < LINKS.length; i++) {
+        const link = LINKS[i];
+        // Warsaw→Berlin appears first (hero line), others staggered after 300ms delay
+        const isHeroLink = (i === heroLinkIdx);
+        const linkDelay = isHeroLink ? 0 : 300 + (i % 28) * 30;
+        const appear = Math.min(1, Math.max(0, (sinceB - linkDelay) / (isHeroLink ? 900 : 700)));
+        if (appear <= 0) continue;
+        const p1 = positions[link.a];
+        const p2 = positions[link.b];
+        const c1 = CITIES[link.a], c2 = CITIES[link.b];
+        const maxTier = Math.max(c1.tier, c2.tier);
+        let baseAlpha = 0.07;
+        if (maxTier === 3) baseAlpha = 0.45;
+        else if (maxTier === 2) baseAlpha = 0.20;
+
+        // Hero link gets extra boost (brief brighter emphasis)
+        if (isHeroLink && sinceB < 1800) {
+          baseAlpha *= 1.6;
+        }
+
+        // Breathing
+        const breathPhase = now * 0.0009 + i * 0.37;
+        const breathe = 0.55 + 0.45 * Math.sin(breathPhase);
+        const alpha = baseAlpha * breathe;
+
+        // Trace during appear, full line after
+        const tx = p1.x + (p2.x - p1.x) * appear;
+        const ty = p1.y + (p2.y - p1.y) * appear;
+        ctx.strokeStyle = 'rgba(201, 168, 76, ' + alpha + ')';
+        ctx.lineWidth = isHeroLink && sinceB < 1500 ? 1.3 : (maxTier === 3 ? 0.85 : 0.5);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+
+        // Continuous traffic dot per line
+        if (appear >= 1) {
+          const trafficSpeed = 0.00018 + (i % 5) * 0.00003;
+          const trafficPhase = (now * trafficSpeed + i * 0.41) % 1;
+          const tfx = p1.x + (p2.x - p1.x) * trafficPhase;
+          const tfy = p1.y + (p2.y - p1.y) * trafficPhase;
+          const trafficAlpha = Math.min(0.7, baseAlpha * 2.2) * breathe;
+          const tg = ctx.createRadialGradient(tfx, tfy, 0, tfx, tfy, 5);
+          tg.addColorStop(0, 'rgba(240, 220, 150, ' + trafficAlpha + ')');
+          tg.addColorStop(1, 'rgba(232, 201, 106, 0)');
+          ctx.fillStyle = tg;
+          ctx.beginPath();
+          ctx.arc(tfx, tfy, 5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = 'rgba(255, 240, 200, ' + (trafficAlpha * 0.9) + ')';
+          ctx.beginPath();
+          ctx.arc(tfx, tfy, 1, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // Deal pulses (Warsaw → Berlin etc)
+      for (let i = pulses.length - 1; i >= 0; i--) {
+        const pulse = pulses[i];
+        const p = (now - pulse.start) / pulse.duration;
+        if (p > 1) { pulses.splice(i, 1); continue; }
+        const p1 = positions[pulse.from];
+        const p2 = positions[pulse.to];
+        const t = 1 - Math.pow(1 - p, 2);
+        const x = p1.x + (p2.x - p1.x) * t;
+        const y = p1.y + (p2.y - p1.y) * t;
+        const grad = ctx.createLinearGradient(p1.x, p1.y, x, y);
+        grad.addColorStop(0, 'rgba(240, 220, 150, 0)');
+        grad.addColorStop(0.7, 'rgba(232, 201, 106, 0.3)');
+        grad.addColorStop(1, 'rgba(240, 220, 150, 0.95)');
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        const orbGlow = ctx.createRadialGradient(x, y, 0, x, y, 14);
+        orbGlow.addColorStop(0, 'rgba(255, 240, 200, 1)');
+        orbGlow.addColorStop(0.3, 'rgba(240, 220, 150, 0.7)');
+        orbGlow.addColorStop(1, 'rgba(232, 201, 106, 0)');
+        ctx.fillStyle = orbGlow;
+        ctx.beginPath();
+        ctx.arc(x, y, 14, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Sound waves — expand wide, ignite distant stars, chain continues
+      const waveMaxR = getWaveMaxRadius();
+      const minIgnitePx = getMinIgnitePx();
+      for (let wi = soundWaves.length - 1; wi >= 0; wi--) {
+        const w = soundWaves[wi];
+        const p = (now - w.start) / w.duration;
+        if (p > 1) { soundWaves.splice(wi, 1); continue; }
+        const origin = positions[w.cityIdx];
+        const radius = p * waveMaxR;
+        const alpha = Math.pow(1 - p, 1.2) * 0.30;
+
+        // Outer ring
+        ctx.strokeStyle = 'rgba(232, 201, 106, ' + alpha + ')';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(origin.x, origin.y, radius, 0, Math.PI * 2);
+        ctx.stroke();
+        // Inner ring (delayed follower)
+        if (radius > 60) {
+          ctx.strokeStyle = 'rgba(240, 220, 150, ' + (alpha * 0.55) + ')';
+          ctx.beginPath();
+          ctx.arc(origin.x, origin.y, radius * 0.72, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Relay: on contact with distant star, this wave DIES and a new wave starts from that star
+        for (let ci = 0; ci < CITIES.length; ci++) {
+          if (ci === w.cityIdx) continue;
+          const cp = positions[ci];
+          const dx = cp.x - origin.x, dy = cp.y - origin.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < minIgnitePx) continue;   // too close — wave passes through without igniting
+          if (radius < dist) continue;        // wave hasn't reached yet
+          // Ignite this distant star (subtle flare)
+          cityFlares[ci] = { start: now, duration: 1400 };
+          // Spawn the next wave from the ignited star
+          if (soundWaves.length < MAX_WAVES) {
+            spawnSoundWave(now, ci, w.gen + 1);
+          }
+          // This wave dies at the moment of contact
+          soundWaves.splice(wi, 1);
+          break;
+        }
+      }
+    }
+
+    // 2. CITY DOTS
+    // Phase B: tier 1 fades out (they were decorative), tier 2/3 remain
+    for (let i = 0; i < CITIES.length; i++) {
+      const c = CITIES[i];
+      const pos = positions[i];
+      const appear = Math.min(1, Math.max(0, (sinceA - cityDelays[i]) / 500));
+      if (appear <= 0) continue;
+
+      let r, baseAlpha, glowR, glowAlpha;
+      if (c.tier === 3)      { r = 4.2; baseAlpha = 1.0; glowR = 38; glowAlpha = 0.75; }
+      else if (c.tier === 2) { r = 2.0; baseAlpha = 0.60; glowR = 12; glowAlpha = 0.22; }
+      else                   { r = 1.1; baseAlpha = 0.40; glowR = 5;  glowAlpha = 0.09; }
+
+      // Phase B: tier-1 global cities fade out (they were part of decorative layer)
+      let tierFade = 1;
+      if (inPhaseB && c.tier === 1) {
+        tierFade = Math.max(0, 1 - sinceB / 1200);
+      }
+      baseAlpha *= tierFade;
+      glowAlpha *= tierFade;
+
+      if (c.tier === 3) {
+        const pulse = 0.6 + 0.4 * Math.sin(now * 0.003 + i);
+        glowR *= 1 + pulse * 0.4;
+        glowAlpha *= 0.75 + pulse * 0.3;
+      } else if (c.tier === 2) {
+        const breath = 0.7 + 0.3 * Math.sin(now * 0.0015 + i);
+        glowAlpha *= breath;
+      } else {
+        const twinkle = 0.8 + 0.2 * Math.sin(now * 0.002 + i * 0.73);
+        glowAlpha *= twinkle;
+        baseAlpha *= 0.85 + 0.15 * Math.sin(now * 0.0025 + i);
+      }
+
+      // Wave-triggered flare — subtle "awakening" when a wave reaches this city
+      const flare = cityFlares[i];
+      if (flare) {
+        const fp = (now - flare.start) / flare.duration;
+        if (fp >= 1) {
+          delete cityFlares[i];
+        } else {
+          // Triangle curve: quick rise (30%), slow decay (70%)
+          let flareK = fp < 0.3 ? (fp / 0.3) : (1 - (fp - 0.3) / 0.7);
+          flareK = Math.max(0, flareK);
+          // Subtle — not very bright
+          glowR *= 1 + flareK * 0.5;
+          glowAlpha = Math.min(0.55, glowAlpha + flareK * 0.25);
+          baseAlpha = Math.min(0.65, baseAlpha + flareK * 0.22);
+        }
+      }
+
+      if (baseAlpha < 0.01 && glowAlpha < 0.01) continue;
+
+      const grad = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, glowR);
+      grad.addColorStop(0, 'rgba(232, 201, 106, ' + (glowAlpha * appear) + ')');
+      grad.addColorStop(0.5, 'rgba(201, 168, 76, ' + (glowAlpha * 0.4 * appear) + ')');
+      grad.addColorStop(1, 'rgba(201, 168, 76, 0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, glowR, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(240, 220, 150, ' + (baseAlpha * appear) + ')';
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 3. spawn deal pulses — only after Phase B has been running for a bit
+    if (inPhaseB && sinceB > 1500) {
+      if (now - lastPulseAt > 2600 + Math.random() * 1800) {
+        spawnPulse(now);
+        lastPulseAt = now;
+      }
+    }
+
+    // 4. spawn Gen-0 sound waves from Polish cities (every ~5-8s)
+    if (inPhaseB && sinceB > 1200) {
+      if (now - lastWaveAt > 5000 + Math.random() * 3000) {
+        spawnPolishSoundWave(now);
+        lastWaveAt = now;
+      }
+    }
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+
+</body>
+</html>
