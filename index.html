@@ -1,0 +1,2416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Global Music Exchange — Find the Sound. Book the Moment.</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Sans:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold: #C9A84C;
+  --gold-light: #E8C96A;
+  --gold-dim: rgba(201,168,76,0.15);
+  --bg: #0A0A0B;
+  --bg2: #111114;
+  --bg3: #18181D;
+  --text: #F0EDE8;
+  --text-dim: rgba(240,237,232,0.55);
+  --text-faint: rgba(240,237,232,0.2);
+  --border: rgba(201,168,76,0.2);
+  --red: #C94C4C;
+  --green: #4CC97A;
+  --blue: #4C8EC9;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  line-height: 1.6;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+@media (pointer: coarse) {
+  body { cursor: auto; }
+  .cursor-dot, .cursor-ring { display: none !important; }
+}
+
+/* ── PRELOADER ── */
+.preloader {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  transition: opacity 0.6s ease, transform 0.9s cubic-bezier(0.76, 0, 0.24, 1), visibility 0s 0.9s;
+}
+.preloader.hidden {
+  opacity: 0;
+  transform: translateY(-100%);
+  visibility: hidden;
+  pointer-events: none;
+}
+.preloader-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+.preloader-brand {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+}
+.preloader-brand span {
+  display: inline-block;
+  color: var(--gold);
+}
+.preloader-count {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.3em;
+  color: var(--text-dim);
+  display: flex;
+  gap: 1rem;
+}
+.preloader-count em { font-style: normal; color: var(--gold); }
+.preloader-bar {
+  width: 220px;
+  height: 1px;
+  background: rgba(201,168,76,0.15);
+  position: relative;
+  overflow: hidden;
+}
+.preloader-bar::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 0%;
+  height: 100%;
+  background: var(--gold);
+  transition: width 0.1s linear;
+}
+
+/* ── CUSTOM CURSOR ── */
+.cursor-dot, .cursor-ring {
+  position: fixed;
+  top: 0; left: 0;
+  pointer-events: none;
+  z-index: 9999;
+  border-radius: 50%;
+  mix-blend-mode: difference;
+}
+.cursor-dot {
+  width: 6px; height: 6px;
+  background: var(--gold-light);
+  transform: translate(-50%, -50%);
+  transition: transform 0.12s ease-out, width 0.2s, height 0.2s;
+}
+.cursor-ring {
+  width: 36px; height: 36px;
+  border: 1px solid rgba(232,201,106,0.6);
+  transform: translate(-50%, -50%);
+  transition: transform 0.18s ease-out, width 0.25s ease, height 0.25s ease, border-color 0.25s;
+}
+.cursor-ring.is-hover {
+  width: 70px; height: 70px;
+  border-color: var(--gold);
+  background: rgba(201,168,76,0.08);
+}
+.cursor-dot.is-hover {
+  width: 3px; height: 3px;
+}
+
+/* ── WEBGL CANVAS ── */
+#bg-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ── NOISE TEXTURE ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9998;
+  opacity: 0.4;
+}
+
+/* Content is above canvas */
+nav, main, section, footer, .trust-bar, .section-full, .divider {
+  position: relative;
+  z-index: 2;
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.4rem 3rem;
+  background: rgba(10,10,11,0.55);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid transparent;
+  transition: padding 0.3s, background 0.3s, border-color 0.3s;
+}
+nav.scrolled {
+  padding: 0.9rem 3rem;
+  background: rgba(10,10,11,0.92);
+  border-bottom-color: var(--border);
+}
+
+.nav-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+.nav-logo span { color: var(--gold); }
+
+.nav-links { display: flex; gap: 2.5rem; list-style: none; }
+.nav-links a {
+  color: var(--text-dim);
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: color 0.3s;
+  position: relative;
+}
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: -4px; left: 0; right: 0;
+  height: 1px;
+  background: var(--gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s cubic-bezier(0.77, 0, 0.175, 1);
+}
+.nav-links a:hover { color: var(--gold); }
+.nav-links a:hover::after { transform: scaleX(1); }
+
+.nav-cta {
+  background: var(--gold);
+  color: #000;
+  border: none;
+  padding: 0.55rem 1.4rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: none;
+  transition: background 0.2s, transform 0.15s, box-shadow 0.3s;
+}
+.nav-cta:hover {
+  background: var(--gold-light);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(201,168,76,0.3);
+}
+
+/* ── HERO ── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 8rem 2rem 4rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-grid-bg {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(201,168,76,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(201,168,76,0.05) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black, transparent);
+  -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black, transparent);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.hero-eyebrow {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.hero-eyebrow::before, .hero-eyebrow::after {
+  content: '';
+  width: 30px;
+  height: 1px;
+  background: var(--gold);
+  opacity: 0.5;
+}
+
+.hero h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(3rem, 7vw, 7rem);
+  font-weight: 900;
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  max-width: 1000px;
+}
+.hero h1 em {
+  font-style: italic;
+  color: var(--gold);
+}
+
+/* Split-text masks for hero headline */
+.line-mask {
+  display: block;
+  overflow: hidden;
+  padding: 0.05em 0;
+}
+.line-mask .char,
+.line-mask .word {
+  display: inline-block;
+  will-change: transform;
+}
+
+.hero-sub {
+  margin-top: 1.8rem;
+  font-size: 1.1rem;
+  color: var(--text-dim);
+  max-width: 540px;
+  line-height: 1.7;
+}
+
+.hero-btns {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2.8rem;
+}
+
+.btn-primary {
+  background: var(--gold);
+  color: #000;
+  border: none;
+  padding: 0.9rem 2.4rem;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  cursor: none;
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.25) 50%, transparent 70%);
+  transform: translateX(-100%);
+  transition: transform 0.7s;
+}
+.btn-primary:hover::before { transform: translateX(100%); }
+.btn-primary:hover {
+  background: var(--gold-light);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 35px rgba(201,168,76,0.4);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 0.9rem 2.4rem;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  cursor: none;
+  transition: all 0.25s;
+}
+.btn-ghost:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(201,168,76,0.1);
+}
+
+.hero-stats {
+  display: flex;
+  gap: 3.5rem;
+  margin-top: 5rem;
+}
+
+.stat-item { text-align: center; }
+.stat-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--gold);
+  display: block;
+}
+.stat-label {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 0.2rem;
+}
+
+.scroll-hint {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.25em;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+}
+.scroll-hint::after {
+  content: '';
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(180deg, var(--gold), transparent);
+  animation: scrollLine 2s ease-in-out infinite;
+}
+@keyframes scrollLine {
+  0% { transform: scaleY(0); transform-origin: top; }
+  45% { transform: scaleY(1); transform-origin: top; }
+  55% { transform: scaleY(1); transform-origin: bottom; }
+  100% { transform: scaleY(0); transform-origin: bottom; }
+}
+
+/* ── SECTIONS ── */
+section { padding: 7rem 3rem; max-width: 1280px; margin: 0 auto; }
+.section-full { max-width: 100%; padding: 7rem 0; }
+.section-inner { max-width: 1280px; margin: 0 auto; padding: 0 3rem; }
+
+.section-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.section-label::before {
+  content: '';
+  width: 24px;
+  height: 1px;
+  background: var(--gold);
+  opacity: 0.5;
+}
+
+.section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  font-weight: 700;
+  line-height: 1.12;
+  margin-bottom: 1.2rem;
+  letter-spacing: -0.015em;
+}
+.section-title em { font-style: italic; color: var(--gold); }
+
+.section-desc {
+  color: var(--text-dim);
+  font-size: 1.02rem;
+  max-width: 520px;
+  line-height: 1.7;
+}
+
+/* ── DIVIDER ── */
+.divider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+}
+
+/* ── MARQUEE ── */
+.marquee {
+  overflow: hidden;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: rgba(10,10,11,0.4);
+  backdrop-filter: blur(10px);
+  padding: 1.6rem 0;
+  position: relative;
+  z-index: 3;
+}
+.marquee-track {
+  display: flex;
+  gap: 4rem;
+  white-space: nowrap;
+  animation: marqueeScroll 40s linear infinite;
+  will-change: transform;
+}
+.marquee-item {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+  font-weight: 700;
+  font-style: italic;
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 4rem;
+}
+.marquee-item .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--gold);
+  flex-shrink: 0;
+  box-shadow: 0 0 14px var(--gold);
+}
+.marquee-item em {
+  color: var(--gold);
+  font-style: italic;
+}
+@keyframes marqueeScroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.marquee-reverse .marquee-track { animation-direction: reverse; animation-duration: 55s; }
+
+/* ── PHASES ── */
+.phases-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-top: 4rem;
+}
+
+.phase-card {
+  background: rgba(17,17,20,0.75);
+  backdrop-filter: blur(20px);
+  padding: 3rem;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.4s;
+}
+.phase-card:hover { background: rgba(24,24,29,0.9); }
+.phase-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.phase-card:hover::before { opacity: 1; }
+
+.phase-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 5rem;
+  font-weight: 900;
+  color: var(--text-faint);
+  line-height: 1;
+  margin-bottom: 1.5rem;
+}
+
+.phase-tag {
+  display: inline-block;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.8rem;
+  margin-bottom: 1rem;
+}
+.phase-tag.free { background: rgba(76,201,122,0.1); color: var(--green); border: 1px solid rgba(76,201,122,0.3); }
+.phase-tag.paid { background: rgba(201,168,76,0.1); color: var(--gold); border: 1px solid var(--border); }
+
+.phase-card h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.8rem;
+}
+.phase-card p { color: var(--text-dim); font-size: 0.9rem; line-height: 1.7; }
+
+/* ── ROLES ── */
+.roles-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 4rem;
+}
+
+.role-card {
+  border: 1px solid var(--border);
+  background: rgba(17,17,20,0.7);
+  backdrop-filter: blur(16px);
+  padding: 2.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s, transform 0.3s;
+}
+.role-card:hover {
+  border-color: rgba(201,168,76,0.5);
+  transform: translateY(-4px);
+}
+
+.role-card::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; right: -60px;
+  width: 220px; height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--gold-dim), transparent 70%);
+  opacity: 0.4;
+  transition: opacity 0.35s;
+}
+.role-card:hover::after { opacity: 1; }
+
+.role-icon {
+  width: 52px; height: 52px;
+  background: var(--gold-dim);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.role-card h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+}
+
+.role-features { list-style: none; display: flex; flex-direction: column; gap: 0.7rem; }
+.role-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  font-size: 0.88rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.role-features li::before {
+  content: '\25C6';
+  color: var(--gold);
+  font-size: 0.45rem;
+  margin-top: 0.4rem;
+  flex-shrink: 0;
+}
+
+/* ── MARKETPLACE MECHANICS ── */
+.mechanics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  margin-top: 4rem;
+}
+
+.mechanic-card {
+  background: rgba(17,17,20,0.75);
+  backdrop-filter: blur(20px);
+  padding: 3rem;
+  transition: background 0.35s;
+}
+.mechanic-card:hover { background: rgba(24,24,29,0.9); }
+
+.mechanic-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--blue);
+  border: 1px solid rgba(76,142,201,0.3);
+  background: rgba(76,142,201,0.08);
+  display: inline-block;
+  padding: 0.25rem 0.7rem;
+  margin-bottom: 1.2rem;
+}
+
+.mechanic-card h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.6rem;
+  margin-bottom: 0.5rem;
+}
+.mechanic-card .mechanic-model {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  margin-bottom: 1.2rem;
+}
+.mechanic-card p { color: var(--text-dim); font-size: 0.9rem; line-height: 1.7; margin-bottom: 1.5rem; }
+
+.flow-mini {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.flow-mini-step {
+  font-size: 0.72rem;
+  padding: 0.35rem 0.8rem;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.flow-mini-step:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.flow-mini-arrow { color: var(--gold); font-size: 0.8rem; }
+
+/* ── ESCROW HORIZONTAL PIN ── */
+.escrow-section {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  position: relative;
+}
+
+.escrow-intro {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 3rem 3rem;
+}
+
+.escrow-pin-wrap {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+}
+.escrow-horizontal {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding-left: 10vw;
+  will-change: transform;
+}
+
+.escrow-step-big {
+  flex: 0 0 45vw;
+  max-width: 560px;
+  padding-right: 6vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+
+.escrow-step-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.3em;
+  color: var(--gold);
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.escrow-step-num::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold), transparent);
+  opacity: 0.5;
+}
+
+.escrow-step-icon {
+  width: 6rem;
+  height: 6rem;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--gold-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  margin-bottom: 2rem;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+.escrow-step-icon::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1px dashed rgba(201,168,76,0.3);
+  animation: slowSpin 18s linear infinite;
+}
+@keyframes slowSpin {
+  from { transform: rotate(0); }
+  to { transform: rotate(360deg); }
+}
+
+.escrow-step-big h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1.15;
+  margin-bottom: 1.2rem;
+  letter-spacing: -0.01em;
+}
+.escrow-step-big h3 em { font-style: italic; color: var(--gold); }
+.escrow-step-big p {
+  color: var(--text-dim);
+  font-size: 1rem;
+  line-height: 1.75;
+  max-width: 440px;
+}
+
+/* Progress track inside pin */
+.escrow-progress {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 3rem;
+  width: min(720px, 60vw);
+  height: 1px;
+  background: rgba(201,168,76,0.15);
+  z-index: 5;
+}
+.escrow-progress-fill {
+  position: absolute;
+  left: 0; top: 0;
+  width: 0%;
+  height: 100%;
+  background: var(--gold);
+  box-shadow: 0 0 12px var(--gold);
+  transition: width 0.1s linear;
+}
+.escrow-progress-label {
+  position: absolute;
+  top: -28px; left: 0;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.25em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.escrow-progress-label em {
+  color: var(--gold);
+  font-style: normal;
+}
+
+/* ── FLOW CHART ── */
+.flowchart { margin-top: 3rem; }
+
+.flow-node {
+  min-width: 140px;
+  padding: 0.8rem 1.2rem;
+  text-align: center;
+  font-size: 0.78rem;
+  border: 1px solid var(--border);
+  background: rgba(17,17,20,0.8);
+  backdrop-filter: blur(10px);
+  position: relative;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: none;
+}
+.flow-node:hover {
+  border-color: var(--gold);
+  background: var(--bg3);
+  color: var(--gold);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(201,168,76,0.2);
+  z-index: 2;
+}
+
+.flow-node .node-state {
+  display: block;
+  font-family: 'DM Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--text-faint);
+  letter-spacing: 0.1em;
+  margin-bottom: 0.2rem;
+}
+
+.flow-node.state-draft { border-color: rgba(201,168,76,0.3); }
+.flow-node.state-active { border-color: rgba(76,142,201,0.5); background: rgba(76,142,201,0.06); }
+.flow-node.state-locked { border-color: rgba(201,76,76,0.5); background: rgba(201,76,76,0.06); }
+.flow-node.state-done { border-color: rgba(76,201,122,0.5); background: rgba(76,201,122,0.06); }
+
+.flow-arrow-h {
+  width: 40px;
+  height: 1px;
+  background: var(--gold);
+  opacity: 0.4;
+  position: relative;
+  flex-shrink: 0;
+}
+.flow-arrow-h::after {
+  content: '\25B6';
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  font-size: 0.55rem;
+  color: var(--gold);
+  opacity: 0.8;
+}
+
+.flow-stages {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  justify-content: center;
+  flex-wrap: wrap;
+  row-gap: 1.2rem;
+}
+
+/* ── SITEMAP ── */
+.sitemap-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-top: 3rem;
+}
+
+.sitemap-col h4 {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+
+.sitemap-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.5rem; }
+.sitemap-col ul li {
+  font-size: 0.82rem;
+  color: var(--text-dim);
+  padding: 0.5rem 0.8rem;
+  border: 1px solid transparent;
+  transition: all 0.25s;
+  cursor: none;
+}
+.sitemap-col ul li:hover {
+  border-color: var(--border);
+  color: var(--text);
+  background: rgba(17,17,20,0.7);
+  transform: translateX(6px);
+}
+.sitemap-col ul li::before {
+  content: '/ ';
+  color: var(--text-faint);
+  font-family: 'DM Mono', monospace;
+}
+
+/* ── DATABASE SCHEMA ── */
+.schema-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-top: 3rem;
+}
+
+.table-card {
+  border: 1px solid var(--border);
+  background: rgba(17,17,20,0.75);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+  transition: border-color 0.3s, transform 0.3s;
+}
+.table-card:hover {
+  border-color: rgba(201,168,76,0.5);
+  transform: translateY(-4px);
+}
+
+.table-header {
+  background: var(--gold-dim);
+  border-bottom: 1px solid var(--border);
+  padding: 0.8rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.table-header .table-icon { font-size: 0.9rem; }
+.table-header h4 {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.table-fields { padding: 0.8rem 0; }
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 1rem;
+  font-size: 0.75rem;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  transition: background 0.15s;
+}
+.field-row:hover { background: rgba(255,255,255,0.03); }
+.field-row:last-child { border-bottom: none; }
+
+.field-key {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.6rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.field-key.pk { background: rgba(201,168,76,0.15); color: var(--gold); }
+.field-key.fk { background: rgba(76,142,201,0.15); color: var(--blue); }
+
+.field-name { color: var(--text); flex: 1; }
+.field-type { color: var(--text-faint); font-family: 'DM Mono', monospace; font-size: 0.65rem; }
+
+/* ── UI PRINCIPLES ── */
+.ui-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 3rem;
+}
+
+.ui-card {
+  padding: 2.2rem;
+  border: 1px solid var(--border);
+  background: rgba(17,17,20,0.7);
+  backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s;
+}
+.ui-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.ui-card:hover {
+  border-color: rgba(201,168,76,0.5);
+  transform: translateY(-5px);
+  box-shadow: 0 14px 40px rgba(0,0,0,0.4);
+}
+.ui-card:hover::before { opacity: 1; }
+
+.ui-card-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--text-faint);
+  line-height: 1;
+  margin-bottom: 1rem;
+  transition: color 0.3s;
+}
+.ui-card:hover .ui-card-num { color: rgba(201,168,76,0.25); }
+
+.ui-card h4 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.05rem;
+  margin-bottom: 0.6rem;
+}
+.ui-card p { font-size: 0.83rem; color: var(--text-dim); line-height: 1.65; }
+
+/* ── TRUST BAR ── */
+.trust-bar {
+  background: linear-gradient(90deg, rgba(17,17,20,0.8), rgba(24,24,29,0.8), rgba(17,17,20,0.8));
+  backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 2rem 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4rem;
+}
+
+.trust-item {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-size: 0.84rem;
+  color: var(--text-dim);
+  transition: color 0.2s;
+}
+.trust-item:hover { color: var(--text); }
+
+.trust-icon {
+  width: 2.2rem; height: 2.2rem;
+  background: var(--gold-dim);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  transition: all 0.3s;
+}
+.trust-item:hover .trust-icon {
+  border-color: var(--gold);
+  box-shadow: 0 0 12px rgba(201,168,76,0.25);
+}
+
+/* ── FOOTER ── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 3.5rem 3rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+.footer-logo span { color: var(--gold); }
+
+.footer-tagline {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.1em;
+  margin-top: 0.3rem;
+}
+
+footer p {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  text-align: right;
+  line-height: 1.6;
+}
+
+.additional-tables {
+  margin-top: 1.5rem;
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.06em;
+}
+
+.dispute-note {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.1em;
+}
+
+/* ── REVEAL BASE ── */
+.reveal-el {
+  will-change: opacity, transform;
+}
+.js-ready .reveal-el {
+  opacity: 0;
+  transform: translateY(40px);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  nav { padding: 1rem 1.5rem; }
+  nav.scrolled { padding: 0.7rem 1.5rem; }
+  .nav-links { display: none; }
+  section { padding: 4rem 1.5rem; }
+  .phases-grid, .roles-grid, .mechanics-grid, .sitemap-grid,
+  .schema-grid, .ui-grid { grid-template-columns: 1fr; }
+  .escrow-pin-wrap { height: auto; }
+  .escrow-horizontal {
+    flex-direction: column;
+    padding: 2rem 1.5rem;
+    gap: 4rem;
+  }
+  .escrow-step-big { flex: 0 0 auto; max-width: 100%; padding-right: 0; }
+  .escrow-progress { display: none; }
+  .trust-bar { flex-wrap: wrap; gap: 1.5rem; padding: 1.5rem; }
+  footer { flex-direction: column; gap: 1rem; text-align: center; }
+  footer p { text-align: center; }
+  .hero-stats { gap: 2rem; }
+  .flow-stages { gap: 0.3rem; }
+  body::before { opacity: 0.25; }
+}
+
+@media (max-width: 600px) {
+  .hero h1 { font-size: 2.5rem; }
+  .hero-stats { flex-direction: column; gap: 1.5rem; }
+  .marquee-item { font-size: 1.3rem; gap: 2rem; }
+  .marquee-track { gap: 2rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- PRELOADER -->
+<div class="preloader" id="preloader">
+  <div class="preloader-inner">
+    <div class="preloader-brand">Global Music <span>Exchange</span></div>
+    <div class="preloader-count">
+      <span>LOADING</span>
+      <span><em id="preCount">000</em> / 100</span>
+    </div>
+    <div class="preloader-bar" id="preBar"></div>
+  </div>
+</div>
+
+<!-- CUSTOM CURSOR -->
+<div class="cursor-ring" id="cursorRing"></div>
+<div class="cursor-dot" id="cursorDot"></div>
+
+<!-- WEBGL CANVAS -->
+<canvas id="bg-canvas"></canvas>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Global Music <span>Exchange</span></div>
+  <ul class="nav-links">
+    <li><a href="#concept" data-cursor="hover">Concept</a></li>
+    <li><a href="#roles" data-cursor="hover">Roles</a></li>
+    <li><a href="#escrow" data-cursor="hover">Escrow</a></li>
+    <li><a href="#architecture" data-cursor="hover">Architecture</a></li>
+    <li><a href="#database" data-cursor="hover">Database</a></li>
+  </ul>
+  <button class="nav-cta" data-cursor="hover">Join Now</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero" style="padding-top:7rem; max-width:100%;" id="hero">
+  <div class="hero-grid-bg"></div>
+  <p class="hero-eyebrow" id="heroEyebrow">Global Music Exchange &mdash; Blueprint v1.0</p>
+  <h1 id="heroTitle">
+    <span class="line-mask">Find the <em>Sound.</em></span>
+    <span class="line-mask">Book the <em>Moment.</em></span>
+  </h1>
+  <p class="hero-sub" id="heroSub">A secure, transparent global marketplace connecting musicians with clients worldwide. Escrow protection. Verified reviews. Zero commission until scale.</p>
+  <div class="hero-btns" id="heroBtns">
+    <button class="btn-primary" data-cursor="hover">I'm a Musician &rarr;</button>
+    <button class="btn-ghost" data-cursor="hover">I'm a Booker &rarr;</button>
+  </div>
+  <div class="hero-stats" id="heroStats">
+    <div class="stat-item">
+      <span class="stat-num" data-count="0">0%</span>
+      <span class="stat-label">Commission &middot; Phase 1</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num" data-count="2">2</span>
+      <span class="stat-label">Marketplace Models</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num">&infin;</span>
+      <span class="stat-label">Countries, No Limits</span>
+    </div>
+  </div>
+  <div class="scroll-hint" id="scrollHint">Scroll</div>
+</section>
+
+<!-- MARQUEE 1 -->
+<div class="marquee">
+  <div class="marquee-track">
+    <span class="marquee-item"><span class="dot"></span>Find the <em>Sound</em></span>
+    <span class="marquee-item"><span class="dot"></span>Book the <em>Moment</em></span>
+    <span class="marquee-item"><span class="dot"></span>Escrow <em>Protected</em></span>
+    <span class="marquee-item"><span class="dot"></span>Zero <em>Commission</em></span>
+    <span class="marquee-item"><span class="dot"></span>Verified <em>Reviews</em></span>
+    <span class="marquee-item"><span class="dot"></span>Global <em>Reach</em></span>
+    <!-- duplicate for seamless loop -->
+    <span class="marquee-item"><span class="dot"></span>Find the <em>Sound</em></span>
+    <span class="marquee-item"><span class="dot"></span>Book the <em>Moment</em></span>
+    <span class="marquee-item"><span class="dot"></span>Escrow <em>Protected</em></span>
+    <span class="marquee-item"><span class="dot"></span>Zero <em>Commission</em></span>
+    <span class="marquee-item"><span class="dot"></span>Verified <em>Reviews</em></span>
+    <span class="marquee-item"><span class="dot"></span>Global <em>Reach</em></span>
+  </div>
+</div>
+
+<!-- TRUST BAR -->
+<div class="trust-bar">
+  <div class="trust-item">
+    <div class="trust-icon">&#128274;</div>
+    <span>Escrow-Protected Payments</span>
+  </div>
+  <div class="trust-item">
+    <div class="trust-icon">&#9989;</div>
+    <span>Verified Reviews Only</span>
+  </div>
+  <div class="trust-item">
+    <div class="trust-icon">&#128196;</div>
+    <span>Auto-Generated Micro-Contracts</span>
+  </div>
+  <div class="trust-item">
+    <div class="trust-icon">&#127758;</div>
+    <span>Geolocation-Based Search</span>
+  </div>
+</div>
+
+<!-- CONCEPT / PHASES -->
+<section id="concept">
+  <p class="section-label reveal-el">Core Philosophy</p>
+  <h2 class="section-title reveal-el">&ldquo;No Show, <em>No Pay.&rdquo;</em><br>Trust is built on transactions.</h2>
+  <p class="section-desc reveal-el">Ratings are locked until the deal is completed and paid. No fake reviews. No paid promotions. Growth first &mdash; monetization after critical mass.</p>
+
+  <div class="phases-grid">
+    <div class="phase-card reveal-el">
+      <div class="phase-num">01</div>
+      <span class="phase-tag free">Free &middot; Growth</span>
+      <h3>Phase 1 &mdash; Building a Global Musician Database</h3>
+      <p>100% free for everyone. Musicians create profiles, clients post requests, deals are made. Every transaction builds a verified reputation that cannot be faked or bought.</p>
+    </div>
+    <div class="phase-card reveal-el">
+      <div class="phase-num">02</div>
+      <span class="phase-tag paid">Commission &middot; Scale</span>
+      <h3>Phase 2 &mdash; Monetization on Success</h3>
+      <p>A small platform commission is charged only on successfully completed and confirmed deals. Cancelled or disputed &mdash; zero. Aligned incentives for all participants.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- USER ROLES -->
+<section id="roles">
+  <p class="section-label reveal-el">User Roles &amp; Onboarding</p>
+  <h2 class="section-title reveal-el">Two Dashboards.<br><em>One Ecosystem.</em></h2>
+  <p class="section-desc reveal-el">Each user type gets a separately tailored interface with tools that match their role on the platform.</p>
+
+  <div class="roles-grid">
+    <div class="role-card reveal-el">
+      <div class="role-icon">&#127925;</div>
+      <h3>Musician</h3>
+      <ul class="role-features">
+        <li>Social media integration &mdash; Spotify, YouTube, Instagram, SoundCloud link automatically</li>
+        <li>&ldquo;Ready for international travel&rdquo; toggle &mdash; expand your booking radius globally</li>
+        <li>Auto-generated technical rider &mdash; gear list built from your profile</li>
+        <li>Booking calendar with availability management and timezone support</li>
+        <li>Earnings dashboard with escrow status and payout history</li>
+        <li>Verified review portfolio &mdash; only from paid, completed performances</li>
+      </ul>
+    </div>
+    <div class="role-card reveal-el">
+      <div class="role-icon">&#128203;</div>
+      <h3>Client / Booker</h3>
+      <ul class="role-features">
+        <li>Verified company or individual profile with lightweight KYC</li>
+        <li>Advanced geolocation search &mdash; radius filter from any city center worldwide</li>
+        <li>Post open tenders or send direct offers in one click</li>
+        <li>Events dashboard &mdash; upcoming gigs, confirmation codes, archive</li>
+        <li>Escrow wallet &mdash; top up in advance, unlock after confirmation</li>
+        <li>Quick re-booking &mdash; re-hire a past musician with one tap</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- DUAL MARKETPLACE -->
+<section id="marketplace">
+  <p class="section-label reveal-el">Dual Marketplace Mechanics</p>
+  <h2 class="section-title reveal-el">Direct Booking <em>or</em><br>Public Tender &mdash; your choice.</h2>
+
+  <div class="mechanics-grid">
+    <div class="mechanic-card reveal-el">
+      <span class="mechanic-badge">Model A</span>
+      <h3>Direct Booking</h3>
+      <p class="mechanic-model">The &ldquo;Booking.com&rdquo; Model</p>
+      <p>Client browses the musician catalog, filters by genre, location, availability, and budget, then sends a direct offer with a specific date and fee. Musician accepts or counter-offers.</p>
+      <div class="flow-mini">
+        <div class="flow-mini-step">Catalog</div>
+        <div class="flow-mini-arrow">&rarr;</div>
+        <div class="flow-mini-step">Send Offer</div>
+        <div class="flow-mini-arrow">&rarr;</div>
+        <div class="flow-mini-step">Musician Accepts</div>
+        <div class="flow-mini-arrow">&rarr;</div>
+        <div class="flow-mini-step">Escrow</div>
+      </div>
+    </div>
+    <div class="mechanic-card reveal-el">
+      <span class="mechanic-badge" style="color:#C94C9A; background:rgba(201,76,154,0.08); border-color:rgba(201,76,154,0.3);">Model B</span>
+      <h3>Public Tender</h3>
+      <p class="mechanic-model">The &ldquo;Uber&rdquo; Model</p>
+      <p>Client posts a gig request &mdash; &ldquo;Need a Jazz Trio in Warsaw, July 20, Budget: $500.&rdquo; Musicians within the set radius get notified and apply. Client picks the best fit.</p>
+      <div class="flow-mini">
+        <div class="flow-mini-step">Post Tender</div>
+        <div class="flow-mini-arrow">&rarr;</div>
+        <div class="flow-mini-step">Musicians Apply</div>
+        <div class="flow-mini-arrow">&rarr;</div>
+        <div class="flow-mini-step">Client Selects</div>
+        <div class="flow-mini-arrow">&rarr;</div>
+        <div class="flow-mini-step">Escrow</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE 2 (reverse) -->
+<div class="marquee marquee-reverse">
+  <div class="marquee-track">
+    <span class="marquee-item"><span class="dot"></span>Safe <em>Deal</em></span>
+    <span class="marquee-item"><span class="dot"></span>Micro <em>Contract</em></span>
+    <span class="marquee-item"><span class="dot"></span>Funds <em>Frozen</em></span>
+    <span class="marquee-item"><span class="dot"></span>Code <em>Exchange</em></span>
+    <span class="marquee-item"><span class="dot"></span>Auto <em>Payout</em></span>
+    <span class="marquee-item"><span class="dot"></span>Review <em>Unlocked</em></span>
+    <span class="marquee-item"><span class="dot"></span>Safe <em>Deal</em></span>
+    <span class="marquee-item"><span class="dot"></span>Micro <em>Contract</em></span>
+    <span class="marquee-item"><span class="dot"></span>Funds <em>Frozen</em></span>
+    <span class="marquee-item"><span class="dot"></span>Code <em>Exchange</em></span>
+    <span class="marquee-item"><span class="dot"></span>Auto <em>Payout</em></span>
+    <span class="marquee-item"><span class="dot"></span>Review <em>Unlocked</em></span>
+  </div>
+</div>
+
+<!-- ESCROW HORIZONTAL PIN -->
+<div class="section-full escrow-section" id="escrow">
+  <div class="escrow-intro">
+    <p class="section-label reveal-el">Secure Transaction Protocol</p>
+    <h2 class="section-title reveal-el">The <em>Safe Deal</em> System.<br>Six steps from offer to payout.</h2>
+    <p class="section-desc reveal-el">Like cash on delivery, but digital and legally binding. Every step is transparent to both parties in real time. Scroll &darr;</p>
+  </div>
+
+  <div class="escrow-pin-wrap" id="escrowPin">
+    <div class="escrow-horizontal" id="escrowTrack">
+      <div class="escrow-step-big">
+        <div class="escrow-step-num">Step 01 / 06</div>
+        <div class="escrow-step-icon">&#128179;</div>
+        <h3>Client <em>Pays</em></h3>
+        <p>Full amount is transferred to the platform's escrow account. Partial payments are not accepted &mdash; this ensures commitment from both sides before the event.</p>
+      </div>
+      <div class="escrow-step-big">
+        <div class="escrow-step-num">Step 02 / 06</div>
+        <div class="escrow-step-icon">&#128274;</div>
+        <h3>Funds <em>Frozen</em></h3>
+        <p>Money is locked. A micro-contract (1 page) is auto-generated and sent to both parties. Legal binding in under 60 seconds.</p>
+      </div>
+      <div class="escrow-step-big">
+        <div class="escrow-step-num">Step 03 / 06</div>
+        <div class="escrow-step-icon">&#127926;</div>
+        <h3>Musician <em>Performs</em></h3>
+        <p>Event day. The musician shows up and plays. The performance takes place. No intermediaries, no middlemen on location.</p>
+      </div>
+      <div class="escrow-step-big">
+        <div class="escrow-step-num">Step 04 / 06</div>
+        <div class="escrow-step-icon">&#128273;</div>
+        <h3>Confirmation <em>Code</em></h3>
+        <p>Client gives the musician a unique code &mdash; or confirms via the app. Proof of performance handshake that cannot be forged.</p>
+      </div>
+      <div class="escrow-step-big">
+        <div class="escrow-step-num">Step 05 / 06</div>
+        <div class="escrow-step-icon">&#128176;</div>
+        <h3>Funds <em>Released</em></h3>
+        <p>Platform transfers payment to the musician. Commission is deducted (Phase 2 only). Payout arrives within 24 hours.</p>
+      </div>
+      <div class="escrow-step-big">
+        <div class="escrow-step-num">Step 06 / 06</div>
+        <div class="escrow-step-icon">&#11088;</div>
+        <h3>Review <em>Unlocked</em></h3>
+        <p>Both parties can leave a verified review &mdash; tied to this transaction only. No fake reviews, ever. Reputation compounds.</p>
+      </div>
+    </div>
+    <div class="escrow-progress">
+      <div class="escrow-progress-label">Deal Flow &middot; <em id="escrowStepLabel">01 / 06</em></div>
+      <div class="escrow-progress-fill" id="escrowProgressFill"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DEAL FLOW CHART -->
+<section id="flowchart">
+  <p class="section-label reveal-el">Logic Flowchart</p>
+  <h2 class="section-title reveal-el">From <em>Draft</em> to<br><em>Paid &amp; Reviewed.</em></h2>
+  <p class="section-desc reveal-el">Every deal moves through defined, immutable state transitions. No skipping steps. No ambiguity.</p>
+
+  <div class="flowchart reveal-el">
+    <div class="flow-stages">
+      <div class="flow-node state-draft">
+        <span class="node-state">01 &middot; DRAFT</span>
+        Offer Created
+      </div>
+      <div class="flow-arrow-h"></div>
+      <div class="flow-node state-draft">
+        <span class="node-state">02 &middot; PENDING</span>
+        Awaiting Response
+      </div>
+      <div class="flow-arrow-h"></div>
+      <div class="flow-node state-active">
+        <span class="node-state">03 &middot; CONFIRMED</span>
+        Both Parties Agree
+      </div>
+      <div class="flow-arrow-h"></div>
+      <div class="flow-node state-locked">
+        <span class="node-state">04 &middot; ESCROWED</span>
+        Funds Frozen + Contract
+      </div>
+      <div class="flow-arrow-h"></div>
+      <div class="flow-node state-active">
+        <span class="node-state">05 &middot; LIVE</span>
+        Event Happening
+      </div>
+      <div class="flow-arrow-h"></div>
+      <div class="flow-node state-active">
+        <span class="node-state">06 &middot; CONFIRMING</span>
+        Code Exchange
+      </div>
+      <div class="flow-arrow-h"></div>
+      <div class="flow-node state-done">
+        <span class="node-state">07 &middot; PAID</span>
+        Funds Released
+      </div>
+      <div class="flow-arrow-h"></div>
+      <div class="flow-node state-done" style="border-color:var(--gold); background:var(--gold-dim)">
+        <span class="node-state">08 &middot; CLOSED</span>
+        Review Unlocked
+      </div>
+    </div>
+    <p class="dispute-note">DISPUTE PATH: Any state 03&ndash;06 &rarr; DISPUTED &rarr; Arbitration &rarr; Resolution &rarr; Continue</p>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- SITEMAP -->
+<section id="architecture">
+  <p class="section-label reveal-el">Sitemap</p>
+  <h2 class="section-title reveal-el">All Essential <em>Pages.</em></h2>
+
+  <div class="sitemap-grid">
+    <div class="sitemap-col reveal-el">
+      <h4>Public / Landing</h4>
+      <ul>
+        <li data-cursor="hover">Home / Landing</li>
+        <li data-cursor="hover">How It Works</li>
+        <li data-cursor="hover">For Musicians</li>
+        <li data-cursor="hover">For Clients</li>
+        <li data-cursor="hover">Pricing &amp; Commission</li>
+        <li data-cursor="hover">Trust &amp; Safety</li>
+        <li data-cursor="hover">Blog</li>
+        <li data-cursor="hover">Sign Up / Log In</li>
+      </ul>
+    </div>
+    <div class="sitemap-col reveal-el">
+      <h4>Musician Dashboard</h4>
+      <ul>
+        <li data-cursor="hover">Profile Builder</li>
+        <li data-cursor="hover">Social Links</li>
+        <li data-cursor="hover">Technical Rider</li>
+        <li data-cursor="hover">Calendar / Availability</li>
+        <li data-cursor="hover">Incoming Offers</li>
+        <li data-cursor="hover">Active Bookings</li>
+        <li data-cursor="hover">Earnings &amp; Payouts</li>
+        <li data-cursor="hover">My Reviews</li>
+      </ul>
+    </div>
+    <div class="sitemap-col reveal-el">
+      <h4>Client Dashboard</h4>
+      <ul>
+        <li data-cursor="hover">Search Musicians</li>
+        <li data-cursor="hover">Post a Tender</li>
+        <li data-cursor="hover">My Applications</li>
+        <li data-cursor="hover">Sent Offers</li>
+        <li data-cursor="hover">Active Bookings</li>
+        <li data-cursor="hover">Confirmation Codes</li>
+        <li data-cursor="hover">Transaction History</li>
+        <li data-cursor="hover">My Reviews</li>
+      </ul>
+    </div>
+    <div class="sitemap-col reveal-el">
+      <h4>Booking &amp; Deal Flow</h4>
+      <ul>
+        <li data-cursor="hover">Offer Builder</li>
+        <li data-cursor="hover">Contract Preview</li>
+        <li data-cursor="hover">Payment / Escrow</li>
+        <li data-cursor="hover">Deal Status Tracker</li>
+        <li data-cursor="hover">Code Entry Page</li>
+        <li data-cursor="hover">Dispute Center</li>
+        <li data-cursor="hover">Review &amp; Rating</li>
+        <li data-cursor="hover">Receipt / Archive</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- DATABASE SCHEMA -->
+<section id="database">
+  <p class="section-label reveal-el">Database Schema</p>
+  <h2 class="section-title reveal-el">Key Tables &amp;<br><em>Relations.</em></h2>
+
+  <div class="schema-grid">
+    <div class="table-card reveal-el">
+      <div class="table-header">
+        <span class="table-icon">&#128100;</span>
+        <h4>users</h4>
+      </div>
+      <div class="table-fields">
+        <div class="field-row"><span class="field-key pk">PK</span><span class="field-name">user_id</span><span class="field-type">uuid</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">email</span><span class="field-type">varchar</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">role</span><span class="field-type">enum</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">full_name</span><span class="field-type">varchar</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">location_lat</span><span class="field-type">float</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">location_lng</span><span class="field-type">float</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">travel_ready</span><span class="field-type">bool</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">verified_at</span><span class="field-type">timestamp</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">rating_avg</span><span class="field-type">float</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">created_at</span><span class="field-type">timestamp</span></div>
+      </div>
+    </div>
+
+    <div class="table-card reveal-el">
+      <div class="table-header">
+        <span class="table-icon">&#127928;</span>
+        <h4>gigs</h4>
+      </div>
+      <div class="table-fields">
+        <div class="field-row"><span class="field-key pk">PK</span><span class="field-name">gig_id</span><span class="field-type">uuid</span></div>
+        <div class="field-row"><span class="field-key fk">FK</span><span class="field-name">client_id</span><span class="field-type">&rarr; users</span></div>
+        <div class="field-row"><span class="field-key fk">FK</span><span class="field-name">musician_id</span><span class="field-type">&rarr; users</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">type</span><span class="field-type">enum</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">status</span><span class="field-type">enum</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">event_date</span><span class="field-type">timestamp</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">location</span><span class="field-type">point</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">budget</span><span class="field-type">decimal</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">confirm_code</span><span class="field-type">varchar</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">contract_url</span><span class="field-type">varchar</span></div>
+      </div>
+    </div>
+
+    <div class="table-card reveal-el">
+      <div class="table-header">
+        <span class="table-icon">&#128176;</span>
+        <h4>payments</h4>
+      </div>
+      <div class="table-fields">
+        <div class="field-row"><span class="field-key pk">PK</span><span class="field-name">payment_id</span><span class="field-type">uuid</span></div>
+        <div class="field-row"><span class="field-key fk">FK</span><span class="field-name">gig_id</span><span class="field-type">&rarr; gigs</span></div>
+        <div class="field-row"><span class="field-key fk">FK</span><span class="field-name">payer_id</span><span class="field-type">&rarr; users</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">amount</span><span class="field-type">decimal</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">currency</span><span class="field-type">varchar</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">escrow_status</span><span class="field-type">enum</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">commission</span><span class="field-type">decimal</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">frozen_at</span><span class="field-type">timestamp</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">released_at</span><span class="field-type">timestamp</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">provider_ref</span><span class="field-type">varchar</span></div>
+      </div>
+    </div>
+
+    <div class="table-card reveal-el">
+      <div class="table-header">
+        <span class="table-icon">&#11088;</span>
+        <h4>reviews</h4>
+      </div>
+      <div class="table-fields">
+        <div class="field-row"><span class="field-key pk">PK</span><span class="field-name">review_id</span><span class="field-type">uuid</span></div>
+        <div class="field-row"><span class="field-key fk">FK</span><span class="field-name">gig_id</span><span class="field-type">&rarr; gigs</span></div>
+        <div class="field-row"><span class="field-key fk">FK</span><span class="field-name">reviewer_id</span><span class="field-type">&rarr; users</span></div>
+        <div class="field-row"><span class="field-key fk">FK</span><span class="field-name">reviewee_id</span><span class="field-type">&rarr; users</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">rating</span><span class="field-type">int 1&ndash;5</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">text</span><span class="field-type">text</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">verified</span><span class="field-type">bool</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">unlocked_at</span><span class="field-type">timestamp</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">visible</span><span class="field-type">bool</span></div>
+        <div class="field-row"><span class="field-key" style="width:1.8rem"></span><span class="field-name">created_at</span><span class="field-type">timestamp</span></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="additional-tables reveal-el">
+    Additional tables: profiles &middot; social_links &middot; riders &middot; tenders &middot; applications &middot; disputes &middot; notifications &middot; audit_log
+  </p>
+</section>
+
+<div class="divider"></div>
+
+<!-- UI/UX STRATEGY -->
+<section id="ux">
+  <p class="section-label reveal-el">UI/UX Strategy</p>
+  <h2 class="section-title reveal-el">Complex Logic.<br><em>Simple Experience.</em></h2>
+  <p class="section-desc reveal-el">Legal and financial complexity is hidden behind clean, progressively disclosed interfaces that guide the user step by step.</p>
+
+  <div class="ui-grid">
+    <div class="ui-card reveal-el">
+      <div class="ui-card-num">01</div>
+      <h4>Progressive Disclosure</h4>
+      <p>Legal and financial steps are broken into small, focused screens. Users see only what's needed now &mdash; contract details are available on demand, never forced upfront.</p>
+    </div>
+    <div class="ui-card reveal-el">
+      <div class="ui-card-num">02</div>
+      <h4>Deal Status Front &amp; Center</h4>
+      <p>Every dashboard starts with deal status. A clear visual pipeline (Draft &rarr; Paid) instead of confusing notification lists. Color-coded states &mdash; instantly clear what needs action.</p>
+    </div>
+    <div class="ui-card reveal-el">
+      <div class="ui-card-num">03</div>
+      <h4>One Primary Action Per Screen</h4>
+      <p>At every critical step &mdash; accepting an offer, paying into escrow, entering a code &mdash; exactly one prominent button. All secondary options fade to the background.</p>
+    </div>
+    <div class="ui-card reveal-el">
+      <div class="ui-card-num">04</div>
+      <h4>Trust Signals at Every Step</h4>
+      <p>Escrow balance is always visible. Contract is always one tap away. Platform commission is shown before payment confirmation. No surprises, ever.</p>
+    </div>
+    <div class="ui-card reveal-el">
+      <div class="ui-card-num">05</div>
+      <h4>Native Geo Search</h4>
+      <p>Musician search with a map-first interface and radius slider. City autocomplete with a &ldquo;find musicians near the venue&rdquo; button. Distance shown in travel hours, not just km.</p>
+    </div>
+    <div class="ui-card reveal-el">
+      <div class="ui-card-num">06</div>
+      <h4>Mobile-First for Musicians</h4>
+      <p>Musicians receive and manage bookings from their phone. Push notifications for offers. One-tap confirmation code entry. Offline gig details view with rider and map.</p>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE 3 -->
+<div class="marquee">
+  <div class="marquee-track">
+    <span class="marquee-item"><span class="dot"></span>Built with <em>precision</em></span>
+    <span class="marquee-item"><span class="dot"></span>Designed for <em>scale</em></span>
+    <span class="marquee-item"><span class="dot"></span>Phase 1: <em>Free</em></span>
+    <span class="marquee-item"><span class="dot"></span>Phase 2: <em>Commission on Success</em></span>
+    <span class="marquee-item"><span class="dot"></span>Built with <em>precision</em></span>
+    <span class="marquee-item"><span class="dot"></span>Designed for <em>scale</em></span>
+    <span class="marquee-item"><span class="dot"></span>Phase 1: <em>Free</em></span>
+    <span class="marquee-item"><span class="dot"></span>Phase 2: <em>Commission on Success</em></span>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <div class="footer-logo">Global Music <span>Exchange</span></div>
+    <div class="footer-tagline">Platform Architecture Blueprint &middot; v1.0</div>
+  </div>
+  <p>Built with precision. Designed for scale.<br>Phase 1: Free. Phase 2: Commission after completion.</p>
+</footer>
+
+<!-- ── LIBRARIES ── -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://unpkg.com/lenis@1.0.42/dist/lenis.min.js"></script>
+<script src="https://unpkg.com/split-type@0.3.4/umd/index.min.js"></script>
+
+<!-- ── THREE.JS HERO SHADER (UMD, works from file://) ── -->
+<script src="https://unpkg.com/three@0.148.0/build/three.min.js"></script>
+<script>
+(function() {
+if (typeof window.THREE === 'undefined') {
+  console.warn('Three.js not loaded — skipping 3D background');
+  return;
+}
+const THREE = window.THREE;
+
+const canvas = document.getElementById('bg-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x0A0A0B, 1);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.z = 4;
+
+// ── Fullscreen background shader plane ──
+const bgGeo = new THREE.PlaneGeometry(2, 2);
+const bgMat = new THREE.ShaderMaterial({
+  depthWrite: false,
+  depthTest: false,
+  uniforms: {
+    uTime: { value: 0 },
+    uMouse: { value: new THREE.Vector2(0.5, 0.5) },
+    uRes: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+  },
+  vertexShader: `
+    void main() { gl_Position = vec4(position, 1.0); }
+  `,
+  fragmentShader: `
+    precision highp float;
+    uniform float uTime;
+    uniform vec2 uMouse;
+    uniform vec2 uRes;
+
+    // Simplex 2D noise
+    vec3 permute(vec3 x){ return mod(((x*34.0)+1.0)*x, 289.0); }
+    float snoise(vec2 v){
+      const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+      vec2 i  = floor(v + dot(v, C.yy));
+      vec2 x0 = v -   i + dot(i, C.xx);
+      vec2 i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+      vec4 x12 = x0.xyxy + C.xxzz;
+      x12.xy -= i1;
+      i = mod(i, 289.0);
+      vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 )) + i.x + vec3(0.0, i1.x, 1.0 ));
+      vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+      m = m*m; m = m*m;
+      vec3 x = 2.0 * fract(p * C.www) - 1.0;
+      vec3 h = abs(x) - 0.5;
+      vec3 ox = floor(x + 0.5);
+      vec3 a0 = x - ox;
+      m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+      vec3 g;
+      g.x  = a0.x  * x0.x  + h.x  * x0.y;
+      g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+      return 130.0 * dot(m, g);
+    }
+
+    void main() {
+      vec2 uv = gl_FragCoord.xy / uRes.xy;
+      vec2 p = uv * 2.0 - 1.0;
+      p.x *= uRes.x / uRes.y;
+
+      float t = uTime * 0.10;
+
+      float n = 0.0;
+      n += snoise(p * 1.2 + vec2(t, -t*0.7)) * 0.55;
+      n += snoise(p * 2.8 - vec2(t*1.3, t*0.5)) * 0.28;
+      n += snoise(p * 6.0 + vec2(t*0.4, t*1.1)) * 0.12;
+
+      // Mouse glow
+      vec2 m = (uMouse * 2.0 - 1.0);
+      m.x *= uRes.x / uRes.y;
+      float md = length(p - m);
+      float mouseGlow = (1.0 - smoothstep(0.0, 0.8, md)) * 0.35;
+
+      float field = n + mouseGlow;
+
+      vec3 bg = vec3(0.039, 0.039, 0.043);
+      vec3 gold = vec3(0.788, 0.659, 0.298);
+      vec3 goldLight = vec3(0.910, 0.788, 0.416);
+
+      float glow = smoothstep(0.05, 0.55, field);
+      float hot  = smoothstep(0.45, 0.85, field);
+
+      vec3 col = mix(bg, gold * 0.32, glow);
+      col = mix(col, goldLight * 0.55, hot * 0.6);
+
+      // Vignette
+      float vig = smoothstep(1.55, 0.35, length(p));
+      col *= vig;
+
+      // Grain
+      float grain = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+      col += (grain - 0.5) * 0.012;
+
+      gl_FragColor = vec4(col, 1.0);
+    }
+  `
+});
+const bgMesh = new THREE.Mesh(bgGeo, bgMat);
+bgMesh.frustumCulled = false;
+bgMesh.renderOrder = -1;
+scene.add(bgMesh);
+
+// ── Distorted sphere ──
+const sphereGeo = new THREE.IcosahedronGeometry(1.1, 48);
+const sphereMat = new THREE.ShaderMaterial({
+  transparent: true,
+  uniforms: {
+    uTime: { value: 0 },
+    uMouse: { value: new THREE.Vector2(0, 0) },
+    uScrollFade: { value: 1.0 }
+  },
+  vertexShader: `
+    varying vec3 vNormal;
+    varying vec3 vPos;
+    uniform float uTime;
+    uniform vec2 uMouse;
+
+    // Classic Perlin 3D Noise by Stefan Gustavson
+    vec4 permute(vec4 x){return mod(((x*34.0)+1.0)*x, 289.0);}
+    vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314 * r;}
+    vec3 fade(vec3 t) {return t*t*t*(t*(t*6.0-15.0)+10.0);}
+
+    float cnoise(vec3 P){
+      vec3 Pi0 = floor(P);
+      vec3 Pi1 = Pi0 + vec3(1.0);
+      Pi0 = mod(Pi0, 289.0);
+      Pi1 = mod(Pi1, 289.0);
+      vec3 Pf0 = fract(P);
+      vec3 Pf1 = Pf0 - vec3(1.0);
+      vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+      vec4 iy = vec4(Pi0.yy, Pi1.yy);
+      vec4 iz0 = Pi0.zzzz;
+      vec4 iz1 = Pi1.zzzz;
+
+      vec4 ixy = permute(permute(ix) + iy);
+      vec4 ixy0 = permute(ixy + iz0);
+      vec4 ixy1 = permute(ixy + iz1);
+
+      vec4 gx0 = ixy0 / 7.0;
+      vec4 gy0 = fract(floor(gx0) / 7.0) - 0.5;
+      gx0 = fract(gx0);
+      vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);
+      vec4 sz0 = step(gz0, vec4(0.0));
+      gx0 -= sz0 * (step(0.0, gx0) - 0.5);
+      gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+
+      vec4 gx1 = ixy1 / 7.0;
+      vec4 gy1 = fract(floor(gx1) / 7.0) - 0.5;
+      gx1 = fract(gx1);
+      vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);
+      vec4 sz1 = step(gz1, vec4(0.0));
+      gx1 -= sz1 * (step(0.0, gx1) - 0.5);
+      gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+
+      vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);
+      vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);
+      vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);
+      vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);
+      vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);
+      vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);
+      vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);
+      vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);
+
+      vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+      g000 *= norm0.x; g010 *= norm0.y; g100 *= norm0.z; g110 *= norm0.w;
+      vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+      g001 *= norm1.x; g011 *= norm1.y; g101 *= norm1.z; g111 *= norm1.w;
+
+      float n000 = dot(g000, Pf0);
+      float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));
+      float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));
+      float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));
+      float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));
+      float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
+      float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));
+      float n111 = dot(g111, Pf1);
+
+      vec3 fade_xyz = fade(Pf0);
+      vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
+      vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
+      float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x);
+      return 2.2 * n_xyz;
+    }
+
+    void main() {
+      vec3 pos = position;
+      float t = uTime * 0.45;
+      float n = cnoise(pos * 1.4 + vec3(t, t*0.7, -t*0.5));
+      float n2 = cnoise(pos * 3.0 - vec3(t*0.3));
+      pos += normal * (n * 0.22 + n2 * 0.08);
+
+      // mouse push
+      vec2 m = uMouse;
+      pos.xy += m * 0.12 * (0.5 + 0.5*n);
+
+      vNormal = normalMatrix * normal;
+      vPos = pos;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+    }
+  `,
+  fragmentShader: `
+    varying vec3 vNormal;
+    varying vec3 vPos;
+    uniform float uTime;
+    uniform float uScrollFade;
+
+    void main() {
+      vec3 viewDir = normalize(-vPos);
+      float fres = pow(1.0 - max(dot(normalize(vNormal), viewDir), 0.0), 2.2);
+      vec3 gold = vec3(0.910, 0.788, 0.416);
+      vec3 dark = vec3(0.05, 0.045, 0.04);
+      vec3 col = mix(dark, gold, fres);
+      col += gold * 0.12 * sin(uTime * 0.8 + vPos.y * 2.0);
+      float alpha = uScrollFade * (0.55 + fres * 0.45);
+      gl_FragColor = vec4(col, alpha);
+    }
+  `
+});
+const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+scene.add(sphere);
+
+// mouse
+const mouse = { x: 0.5, y: 0.5, nx: 0, ny: 0 };
+window.addEventListener('mousemove', (e) => {
+  mouse.x = e.clientX / window.innerWidth;
+  mouse.y = 1.0 - e.clientY / window.innerHeight;
+  mouse.nx = (e.clientX / window.innerWidth) * 2.0 - 1.0;
+  mouse.ny = -((e.clientY / window.innerHeight) * 2.0 - 1.0);
+});
+
+// resize
+function onResize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  bgMat.uniforms.uRes.value.set(w, h);
+}
+window.addEventListener('resize', onResize);
+
+// render loop
+const clock = new THREE.Clock();
+let paused = false;
+function tick() {
+  if (!paused) {
+    const t = clock.getElapsedTime();
+    bgMat.uniforms.uTime.value = t;
+    bgMat.uniforms.uMouse.value.lerp(new THREE.Vector2(mouse.x, mouse.y), 0.06);
+    sphereMat.uniforms.uTime.value = t;
+    sphereMat.uniforms.uMouse.value.lerp(new THREE.Vector2(mouse.nx, mouse.ny), 0.06);
+
+    const scrollY = window.scrollY || 0;
+    const vh = window.innerHeight;
+    const heroProgress = Math.min(1, scrollY / (vh * 0.9));
+    sphere.position.y = heroProgress * -1.5;
+    sphere.rotation.y = t * 0.12 + heroProgress * 0.8;
+    sphere.rotation.x = Math.sin(t * 0.3) * 0.15;
+    const fade = Math.max(0, 1 - heroProgress * 1.4);
+    sphereMat.uniforms.uScrollFade.value = fade;
+
+    renderer.render(scene, camera);
+  }
+  requestAnimationFrame(tick);
+}
+tick();
+
+// pause when hero out of view to save battery
+const hero = document.getElementById('hero');
+if ('IntersectionObserver' in window) {
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { paused = !e.isIntersecting; });
+  }, { threshold: 0 });
+  io.observe(hero);
+}
+
+// expose so non-module script can access if needed
+window.__three = { bgMat, sphereMat };
+})();
+</script>
+
+<!-- ── APP LOGIC ── -->
+<script>
+(function() {
+  /* ── PRELOADER (runs regardless of libs) ── */
+  const preEl = document.getElementById('preloader');
+  const preCount = document.getElementById('preCount');
+  const preBar = document.getElementById('preBar');
+  const preDuration = 1400;
+  const preStart = performance.now();
+  let preloaderDone = false;
+
+  // inject CSS rule for bar width dynamic
+  const s = document.createElement('style');
+  s.textContent = `.preloader-bar::after { width: var(--fill, 0%); }`;
+  document.head.appendChild(s);
+
+  function preTick(now) {
+    const p = Math.min(1, (now - preStart) / preDuration);
+    const eased = 1 - Math.pow(1 - p, 3);
+    preCount.textContent = String(Math.floor(eased * 100)).padStart(3, '0');
+    preBar.style.setProperty('--fill', (eased * 100) + '%');
+    if (p < 1) requestAnimationFrame(preTick);
+    else finishPreloader();
+  }
+  requestAnimationFrame(preTick);
+
+  // Safety: if animation never fires, still hide preloader after 3s
+  setTimeout(() => { if (!preloaderDone) finishPreloader(); }, 3000);
+
+  function finishPreloader() {
+    if (preloaderDone) return;
+    preloaderDone = true;
+    preEl.classList.add('hidden');
+    setTimeout(() => { try { preEl.remove(); } catch(e){} }, 1000);
+    try { startIntroAnimation(); } catch(e) { console.error('Intro failed:', e); }
+  }
+
+  /* ── CHECK LIBRARIES ── */
+  const hasGSAP = typeof window.gsap !== 'undefined';
+  const hasLenis = typeof window.Lenis !== 'undefined';
+  const hasST = hasGSAP && typeof window.ScrollTrigger !== 'undefined';
+  const hasSplit = typeof window.SplitType !== 'undefined';
+
+  if (!hasGSAP) {
+    console.warn('GSAP not loaded — animations disabled');
+    document.documentElement.classList.add('no-gsap');
+    return; // bail out of enhanced animations
+  }
+
+  const gsap = window.gsap;
+  const ScrollTrigger = window.ScrollTrigger;
+  const Lenis = window.Lenis;
+  const SplitType = window.SplitType;
+
+  if (hasST) gsap.registerPlugin(ScrollTrigger);
+  document.documentElement.classList.add('js-ready');
+
+  /* ── LENIS SMOOTH SCROLL ── */
+  let lenis = null;
+  if (hasLenis) {
+    try {
+      lenis = new Lenis({
+        duration: 1.2,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smoothWheel: true,
+        smoothTouch: false
+      });
+      if (hasST) lenis.on('scroll', ScrollTrigger.update);
+      gsap.ticker.add((time) => lenis.raf(time * 1000));
+      gsap.ticker.lagSmoothing(0);
+    } catch(e) {
+      console.warn('Lenis init failed, falling back to native scroll', e);
+      lenis = null;
+    }
+  }
+
+  /* ── CUSTOM CURSOR ── */
+  const dot = document.getElementById('cursorDot');
+  const ring = document.getElementById('cursorRing');
+  let mx = window.innerWidth / 2, my = window.innerHeight / 2;
+  let rx = mx, ry = my, dx = mx, dy = my;
+
+  window.addEventListener('mousemove', (e) => {
+    mx = e.clientX;
+    my = e.clientY;
+  });
+
+  function cursorTick() {
+    dx += (mx - dx) * 0.35;
+    dy += (my - dy) * 0.35;
+    rx += (mx - rx) * 0.15;
+    ry += (my - ry) * 0.15;
+    dot.style.transform = `translate(${dx}px, ${dy}px) translate(-50%, -50%)`;
+    ring.style.transform = `translate(${rx}px, ${ry}px) translate(-50%, -50%)`;
+    requestAnimationFrame(cursorTick);
+  }
+  cursorTick();
+
+  // Hover detection
+  const hoverSelector = 'a, button, [data-cursor="hover"], .phase-card, .role-card, .mechanic-card, .ui-card, .table-card, .flow-node';
+  document.querySelectorAll(hoverSelector).forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      ring.classList.add('is-hover');
+      dot.classList.add('is-hover');
+    });
+    el.addEventListener('mouseleave', () => {
+      ring.classList.remove('is-hover');
+      dot.classList.remove('is-hover');
+    });
+  });
+
+  // Hide cursor when leaving window
+  document.addEventListener('mouseleave', () => {
+    dot.style.opacity = '0';
+    ring.style.opacity = '0';
+  });
+  document.addEventListener('mouseenter', () => {
+    dot.style.opacity = '1';
+    ring.style.opacity = '1';
+  });
+
+  /* ── INTRO ANIMATION (after preloader) ── */
+  function startIntroAnimation() {
+    if (!hasGSAP) return;
+
+    // Split the h1 into words/chars via SplitType (optional)
+    if (hasSplit) {
+      try {
+        const heroTitle = document.getElementById('heroTitle');
+        const lines = heroTitle.querySelectorAll('.line-mask');
+        lines.forEach(line => {
+          new SplitType(line, { types: 'words,chars', tagName: 'span' });
+        });
+      } catch(e) { console.warn('SplitType hero failed', e); }
+    }
+
+    const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
+    tl.from('.hero-grid-bg', { opacity: 0, duration: 1.2 }, 0)
+      .from('#heroEyebrow', { opacity: 0, y: 10, duration: 0.7 }, 0.1)
+      .from('#heroTitle .char', {
+        yPercent: 110,
+        opacity: 0,
+        stagger: 0.022,
+        duration: 1.1,
+        ease: 'expo.out'
+      }, 0.15)
+      .from('#heroSub', { opacity: 0, y: 20, duration: 0.9 }, 0.7)
+      .from('#heroBtns', { opacity: 0, y: 20, duration: 0.8 }, 0.85)
+      .from('#heroStats', { opacity: 0, y: 20, duration: 0.8 }, 1.0)
+      .from('#scrollHint', { opacity: 0, duration: 0.6 }, 1.2)
+      .from('nav', { y: -40, opacity: 0, duration: 0.9 }, 0.2);
+
+    // Animate number counters
+    document.querySelectorAll('.stat-num[data-count]').forEach(el => {
+      const target = parseFloat(el.dataset.count);
+      const suffix = el.textContent.includes('%') ? '%' : '';
+      const obj = { v: 0 };
+      gsap.to(obj, {
+        v: target,
+        duration: 1.4,
+        delay: 1.1,
+        ease: 'power2.out',
+        onUpdate: () => {
+          el.textContent = Math.round(obj.v) + suffix;
+        }
+      });
+    });
+
+    initScrollAnimations();
+  }
+
+  /* ── SCROLL ANIMATIONS ── */
+  function initScrollAnimations() {
+    if (!hasST) {
+      // Fallback: just make everything visible
+      document.querySelectorAll('.reveal-el').forEach(el => {
+        el.style.opacity = '1';
+        el.style.transform = 'none';
+      });
+      return;
+    }
+
+    // Generic reveal for all .reveal-el
+    gsap.utils.toArray('.reveal-el').forEach((el) => {
+      gsap.to(el, {
+        opacity: 1,
+        y: 0,
+        duration: 0.9,
+        ease: 'expo.out',
+        scrollTrigger: {
+          trigger: el,
+          start: 'top 85%',
+          toggleActions: 'play none none none'
+        }
+      });
+    });
+
+    // Split & animate section titles on scroll (optional)
+    if (hasSplit) {
+      gsap.utils.toArray('.section-title').forEach((title) => {
+        try {
+          const split = new SplitType(title, { types: 'words', tagName: 'span' });
+          gsap.set(split.words, { yPercent: 100, opacity: 0 });
+          split.words.forEach(w => {
+            const mask = document.createElement('span');
+            mask.style.display = 'inline-block';
+            mask.style.overflow = 'hidden';
+            mask.style.paddingBottom = '0.08em';
+            w.parentNode.insertBefore(mask, w);
+            mask.appendChild(w);
+          });
+          gsap.to(split.words, {
+            yPercent: 0,
+            opacity: 1,
+            duration: 1.1,
+            stagger: 0.04,
+            ease: 'expo.out',
+            scrollTrigger: {
+              trigger: title,
+              start: 'top 82%',
+              toggleActions: 'play none none none'
+            }
+          });
+        } catch(e) { console.warn('Split title failed', e); }
+      });
+    }
+
+    // Hero parallax on scroll
+    gsap.to('#heroTitle', {
+      yPercent: -30,
+      opacity: 0.2,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: '#hero',
+        start: 'top top',
+        end: 'bottom top',
+        scrub: true
+      }
+    });
+    gsap.to('#heroSub, #heroBtns, #heroStats, #heroEyebrow', {
+      yPercent: -60,
+      opacity: 0,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: '#hero',
+        start: 'top top',
+        end: 'bottom top',
+        scrub: true
+      }
+    });
+
+    // ── ESCROW HORIZONTAL PIN ──
+    ScrollTrigger.matchMedia({
+      '(min-width: 900px)': function() {
+        const track = document.getElementById('escrowTrack');
+        const pin = document.getElementById('escrowPin');
+        const steps = track.querySelectorAll('.escrow-step-big');
+        const totalSteps = steps.length;
+
+        // Calculate travel distance
+        const getDistance = () => track.scrollWidth - pin.offsetWidth;
+
+        const tween = gsap.to(track, {
+          x: () => `-${getDistance()}px`,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: pin,
+            start: 'top top',
+            end: () => `+=${getDistance() + window.innerHeight * 0.5}`,
+            pin: true,
+            scrub: 1,
+            invalidateOnRefresh: true,
+            anticipatePin: 1,
+            onUpdate: (self) => {
+              const progress = self.progress;
+              const fill = document.getElementById('escrowProgressFill');
+              const label = document.getElementById('escrowStepLabel');
+              fill.style.width = (progress * 100) + '%';
+              const currentStep = Math.min(totalSteps, Math.floor(progress * totalSteps) + 1);
+              label.textContent = String(currentStep).padStart(2, '0') + ' / 06';
+            }
+          }
+        });
+
+        // Scale/glow icons as they cross center
+        steps.forEach((step, i) => {
+          const icon = step.querySelector('.escrow-step-icon');
+          gsap.fromTo(icon, {
+            scale: 0.85,
+          }, {
+            scale: 1.15,
+            boxShadow: '0 0 40px rgba(201,168,76,0.4)',
+            ease: 'power2.inOut',
+            scrollTrigger: {
+              trigger: step,
+              containerAnimation: tween,
+              start: 'left center',
+              end: 'right center',
+              scrub: true
+            }
+          });
+        });
+      }
+    });
+
+    // Flow-chart node stagger illumination
+    gsap.utils.toArray('.flow-node').forEach((node, i) => {
+      gsap.from(node, {
+        opacity: 0,
+        y: 20,
+        duration: 0.6,
+        delay: i * 0.05,
+        scrollTrigger: {
+          trigger: '.flow-stages',
+          start: 'top 75%',
+          toggleActions: 'play none none none'
+        }
+      });
+    });
+
+    // Marquee pause on hover
+    document.querySelectorAll('.marquee').forEach(m => {
+      const t = m.querySelector('.marquee-track');
+      m.addEventListener('mouseenter', () => { t.style.animationPlayState = 'paused'; });
+      m.addEventListener('mouseleave', () => { t.style.animationPlayState = 'running'; });
+    });
+
+    // Nav shrink
+    ScrollTrigger.create({
+      start: 60,
+      end: 99999,
+      onToggle: (self) => {
+        document.querySelector('nav').classList.toggle('scrolled', self.isActive);
+      }
+    });
+
+    // Nav active link
+    const navLinks = document.querySelectorAll('.nav-links a');
+    const sections = document.querySelectorAll('section[id], div[id]');
+    ScrollTrigger.create({
+      start: 0,
+      end: 99999,
+      onUpdate: () => {
+        let current = '';
+        sections.forEach(s => {
+          const rect = s.getBoundingClientRect();
+          if (rect.top <= 120 && rect.bottom > 120) current = s.id;
+        });
+        navLinks.forEach(a => {
+          const isActive = a.getAttribute('href') === '#' + current;
+          a.style.color = isActive ? 'var(--gold)' : '';
+        });
+      }
+    });
+
+    // Smooth anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', (e) => {
+        const id = a.getAttribute('href');
+        if (id.length > 1) {
+          e.preventDefault();
+          const target = document.querySelector(id);
+          if (!target) return;
+          if (lenis) {
+            lenis.scrollTo(target, { offset: -60, duration: 1.4 });
+          } else {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      });
+    });
+
+    // Refresh after all setup
+    ScrollTrigger.refresh();
+  }
+
+})();
+</script>
+
+</body>
+</html>
